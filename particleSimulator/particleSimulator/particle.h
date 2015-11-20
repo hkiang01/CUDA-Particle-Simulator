@@ -38,7 +38,7 @@ public:
 	//between particles
 	__host__ __device__ v3 getRay(particle const& p_other);
 	__host__ __device__ double getDistance(particle const& other);
-	
+
 	int id;
 	bool alive;
 	double mass;

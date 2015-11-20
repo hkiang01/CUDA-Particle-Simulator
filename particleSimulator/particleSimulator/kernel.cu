@@ -3,17 +3,6 @@
 #include "device_launch_parameters.h"
 
 #include <stdio.h>
-#include <vector>
-#include "particle.h"
-
-#define NUM_PARTICLES 2
-#define WORLD_DIM 100
-#define MAX_VEL 5
-#define UNIVERSAL_MASS 55.00
-#define EPOCH .001f
-#define SIMULATION_LENGTH 2
-
-const double GRAVITY = 0.066742;
 
 cudaError_t addWithCuda(int *c, const int *a, const int *b, unsigned int size);
 
@@ -25,69 +14,29 @@ __global__ void addKernel(int *c, const int *a, const int *b)
 
 int main()
 {
-	const int arraySize = 5;
-	const int a[arraySize] = { 1, 2, 3, 4, 5 };
-	const int b[arraySize] = { 10, 20, 30, 40, 50 };
-	int c[arraySize] = { 0 };
+    const int arraySize = 5;
+    const int a[arraySize] = { 1, 2, 3, 4, 5 };
+    const int b[arraySize] = { 10, 20, 30, 40, 50 };
+    int c[arraySize] = { 0 };
 
-		// Add vectors in parallel.
-	cudaError_t cudaStatus = addWithCuda(c, a, b, arraySize);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "addWithCuda failed!");
-		return 1;
-	}
+    // Add vectors in parallel.
+    cudaError_t cudaStatus = addWithCuda(c, a, b, arraySize);
+    if (cudaStatus != cudaSuccess) {
+        fprintf(stderr, "addWithCuda failed!");
+        return 1;
+    }
 
-	printf("{1,2,3,4,5} + {10,20,30,40,50} = {%d,%d,%d,%d,%d}\n",
-		c[0], c[1], c[2], c[3], c[4]);
+    printf("{1,2,3,4,5} + {10,20,30,40,50} = {%d,%d,%d,%d,%d}\n",
+        c[0], c[1], c[2], c[3], c[4]);
 
-	// cudaDeviceReset must be called before exiting in order for profiling and
-	// tracing tools such as Nsight and Visual Profiler to show complete traces.
-	cudaStatus = cudaDeviceReset();
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaDeviceReset failed!");
-		return 1;
-	}
+    // cudaDeviceReset must be called before exiting in order for profiling and
+    // tracing tools such as Nsight and Visual Profiler to show complete traces.
+    cudaStatus = cudaDeviceReset();
+    if (cudaStatus != cudaSuccess) {
+        fprintf(stderr, "cudaDeviceReset failed!");
+        return 1;
+    }
 
-	std::vector<particle> particles;
-	int i;
-	for (i = 0; i < NUM_PARTICLES; i++) {
-		particle p = particle();
-		p.setID(i);
-		p.randomPosition(0.0, (float)WORLD_DIM);
-		p.randomVelocity(0.0, (float)MAX_VEL);
-		p.setMass((float)UNIVERSAL_MASS);
-		particles.push_back(p);
-	}
-
-	printf("Initial configuration...\n");
-	for (std::vector<particle>::iterator it = particles.begin(); it != particles.end(); ++it) {
-		it->printProps();
-	}
-	printf("\n");
-
-	int counter = 0;
-	while (counter < SIMULATION_LENGTH) {
-		for (std::vector<particle>::iterator it = particles.begin(); it != particles.end(); ++it) {
-			v3 force = v3(0.0, 0.0, 0.0);
-			for (std::vector<particle>::iterator itt = particles.begin(); itt != particles.end(); ++itt) {
-				if (it != itt) {
-					// force on i (it) by j (itt)
-					v3 currRay = it->getRay(*itt);
-					double dist = it->getDistance(*itt);
-					double mi = it->getMass();
-					double mj = itt->getMass();
-					force.x += (double)GRAVITY * (double)mj * (double)currRay.x / (double)pow(dist, 3.0);
-					force.y += (double)GRAVITY * (double)mj * (double)currRay.y / (double)pow(dist, 3.0);
-					force.z += (double)GRAVITY * (double)mj * (double)currRay.z / (double)pow(dist, 3.0);
-				}
-			}
-			it->updateParticle(EPOCH, force);
-			it->printProps();
-		}
-		counter++;
-	}
-
-	system("pause"); //see output of terminal
     return 0;
 }
 
