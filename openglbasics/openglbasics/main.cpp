@@ -1,4 +1,5 @@
 // Tutorial: http://in2gpu.com/2014/10/17/creating-opengl-window/
+// NuGet Package Manager Command: "Install-Package nupengl.core"
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 #include <iostream>
