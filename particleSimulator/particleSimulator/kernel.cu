@@ -9,10 +9,12 @@
 #define cudaCheck(stmt) do {													\
 	cudaError_t err = stmt;														\
 	if (err != cudaSuccess) {													\
-		fpritnf(stderr, "Failed to run stmt ", #stmt);							\
-		fprintf(stderr, "Got CUDA error ... %s", cudaGetErrorString(err));		\
+		fprintf(stderr, "Failed to run stmt ", #stmt);							\
+		fprintf(stderr, "Got CUDA error ... %s\n", cudaGetErrorString(err));		\
 	}																			\
 } while (0);
+
+#define BLOCK_SIZE 256
 
 #define NUM_PARTICLES 2
 #define WORLD_DIM 100
@@ -24,11 +26,22 @@
 const double GRAVITY = 0.066742;
 
 cudaError_t addWithCuda(int *c, const int *a, const int *b, unsigned int size);
+void gravitySerial(std::vector<particle> particles);
+void gravityWithCuda(particle* particles, int size);
 
 __global__ void addKernel(int *c, const int *a, const int *b)
 {
 	int i = threadIdx.x;
 	c[i] = a[i] + b[i];
+}
+
+__global__ void gravKernel(particle* particles, int size) {
+	//todo: kernel where each thread handles/updated a single particle
+	int i = threadIdx.x + blockDim.x * blockIdx.x;
+	if (i < size) {
+		particle* curr_particle = &particles[i];
+		printf("particle id: %d\n", curr_particle->id);
+	}
 }
 
 int main()
@@ -67,21 +80,26 @@ int main()
 		particles.push_back(p);
 	}
 
-	std::vector<particle> particles_copy;
-
-	printf("Initial configuration...\n");
+	particle particles_copy[NUM_PARTICLES];
+	i = 0;
 	for (std::vector<particle>::iterator it = particles.begin(); it != particles.end(); ++it) {
-		it->printProps();
-		particles_copy.push_back(*it);
+		particles_copy[i] = *it;
+		++i;
+	}
+	printf("initial copy...\n");
+	for (i = 0; i < NUM_PARTICLES; i++) {
+		particles_copy[i].printProps();
 	}
 	printf("\n");
 
-	printf("Initial configuration copy...\n");
-	for (std::vector<particle>::iterator it = particles_copy.begin(); it != particles_copy.end(); ++it) {
-		it->printProps();
-	}
-	printf("\n");
+	gravitySerial(particles);
+	gravityWithCuda(particles_copy, NUM_PARTICLES);
 
+	system("pause"); //see output of terminal
+	return 0;
+}
+
+void gravitySerial(std::vector<particle> particles) {
 	int counter = 0;
 	while (counter < SIMULATION_LENGTH) {
 		for (std::vector<particle>::iterator it = particles.begin(); it != particles.end(); ++it) {
@@ -103,14 +121,26 @@ int main()
 		}
 		counter++;
 	}
-
-	system("pause"); //see output of terminal
-	return 0;
 }
 
-cudaError_t gravityWithCuda(std::vector<particle> particles) {
-	cudaError_t cudaStatus;
-	return cudaStatus;
+void gravityWithCuda(particle *particles, int size) {
+	particle *particles_device;
+
+	cudaCheck(cudaSetDevice(0)); //choose which GPU to run on
+	cudaCheck(cudaMalloc((void **)&particles_device, size * sizeof(particle)));
+	cudaCheck(cudaMemcpy(particles_device, particles, size * sizeof(particle), cudaMemcpyHostToDevice));
+
+	dim3 dimGrid;
+	dim3 dimBlock;
+	dimGrid.x = (size - 1) / BLOCK_SIZE + 1;
+	dimBlock.x = BLOCK_SIZE;
+
+	gravKernel<<<dimGrid,dimBlock>>>(particles_device, size);
+
+	cudaCheck(cudaDeviceSynchronize());
+	cudaCheck(cudaMemcpy(particles, particles_device, size * sizeof(particle), cudaMemcpyDeviceToHost));
+	cudaCheck(cudaFree(particles_device));
+	return;
 }
 
 // Helper function for using CUDA to add vectors in parallel.
