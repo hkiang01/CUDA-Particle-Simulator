@@ -6,6 +6,14 @@
 #include <vector>
 #include "particle.h"
 
+#define cudaCheck(stmt) do {													\
+	cudaError_t err = stmt;														\
+	if (err != cudaSuccess) {													\
+		fpritnf(stderr, "Failed to run stmt ", #stmt);							\
+		fprintf(stderr, "Got CUDA error ... %s", cudaGetErrorString(err));		\
+	}																			\
+} while (0);
+
 #define NUM_PARTICLES 2
 #define WORLD_DIM 100
 #define MAX_VEL 5
@@ -59,8 +67,17 @@ int main()
 		particles.push_back(p);
 	}
 
+	std::vector<particle> particles_copy;
+
 	printf("Initial configuration...\n");
 	for (std::vector<particle>::iterator it = particles.begin(); it != particles.end(); ++it) {
+		it->printProps();
+		particles_copy.push_back(*it);
+	}
+	printf("\n");
+
+	printf("Initial configuration copy...\n");
+	for (std::vector<particle>::iterator it = particles_copy.begin(); it != particles_copy.end(); ++it) {
 		it->printProps();
 	}
 	printf("\n");
@@ -89,6 +106,11 @@ int main()
 
 	system("pause"); //see output of terminal
 	return 0;
+}
+
+cudaError_t gravityWithCuda(std::vector<particle> particles) {
+	cudaError_t cudaStatus;
+	return cudaStatus;
 }
 
 // Helper function for using CUDA to add vectors in parallel.
