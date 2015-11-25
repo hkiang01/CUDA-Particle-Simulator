@@ -11,10 +11,10 @@
 class particle
 {
 public:
-	particle();
-	particle(v3 posvec);
-	particle(v3 posvec, double mass_in);
-	particle(v3 posvec, v3 velvec, v3 accvec);
+	__host__ __device__ particle();
+	__host__ __device__ particle(v3 posvec);
+	__host__ __device__ particle(v3 posvec, double mass_in);
+	__host__ __device__ particle(v3 posvec, v3 velvec, v3 accvec);
 	__host__ __device__ int getID();
 	__host__ __device__ void setID(int id_in);
 	__host__ __device__ v3 getPosition();
@@ -33,7 +33,7 @@ public:
 	__host__ __device__ void updateParticle(double dt, v3 accvec);
 	__host__ __device__ void applyForce(v3 forcevec);
 	__host__ __device__ void printProps();
-	~particle();
+	__host__ __device__ ~particle();
 
 	//between particles
 	__host__ __device__ v3 getRay(particle const& p_other);

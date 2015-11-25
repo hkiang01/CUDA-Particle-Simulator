@@ -1,6 +1,8 @@
 
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
+#include <device_functions.h>
+#include <cuda.h>
 
 #include <stdio.h>
 #include <vector>
@@ -10,7 +12,7 @@
 	cudaError_t err = stmt;														\
 	if (err != cudaSuccess) {													\
 		fprintf(stderr, "Failed to run stmt ", #stmt);							\
-		fprintf(stderr, "Got CUDA error ... %s\n", cudaGetErrorString(err));		\
+		fprintf(stderr, "Got CUDA error ... %s\n", cudaGetErrorString(err));	\
 	}																			\
 } while (0);
 
@@ -35,12 +37,22 @@ __global__ void addKernel(int *c, const int *a, const int *b)
 	c[i] = a[i] + b[i];
 }
 
-__global__ void gravKernel(particle* particles, int size) {
+__global__ void gravKernel(particle* particles, int size, int simul_length) {
+	
 	//todo: kernel where each thread handles/updated a single particle
+	//hard part: make this work across blocks like in mp 5.2 (not sure if this is doable)
+
+	__shared__ particle particles_shared[BLOCK_SIZE];
+	//above DOES NOT COMPILE (shared array of objects)
+	//see Dynamic Shared Memory: http://devblogs.nvidia.com/parallelforall/using-shared-memory-cuda-cc/
+	//see response: http://stackoverflow.com/questions/27230621/cuda-shared-memory-inconsistent-results
+
 	int i = threadIdx.x + blockDim.x * blockIdx.x;
 	if (i < size) {
-		particle* curr_particle = &particles[i];
-		printf("particle id: %d\n", curr_particle->id);
+		//load phase
+		particles_shared[threadIdx.x] = particles[i];
+		__syncthreads();
+
 	}
 }
 
@@ -135,7 +147,7 @@ void gravityWithCuda(particle *particles, int size) {
 	dimGrid.x = (size - 1) / BLOCK_SIZE + 1;
 	dimBlock.x = BLOCK_SIZE;
 
-	gravKernel<<<dimGrid,dimBlock>>>(particles_device, size);
+	gravKernel<<<dimGrid,dimBlock,dimBlock.x*sizeof(particle)>>>(particles_device, size, SIMULATION_LENGTH);
 
 	cudaCheck(cudaDeviceSynchronize());
 	cudaCheck(cudaMemcpy(particles, particles_device, size * sizeof(particle), cudaMemcpyDeviceToHost));

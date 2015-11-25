@@ -1,7 +1,7 @@
 #include "particle.h"
 
 
-particle::particle()
+__host__ __device__ particle::particle()
 {
 	id = -1;
 	alive = true;
@@ -14,16 +14,16 @@ particle::particle()
 	vel.z = 0.0;
 }
 
-particle::particle(v3 posvec) {
+__host__ __device__ particle::particle(v3 posvec) {
 	this->setPosition(posvec);
 }
 
-particle::particle(v3 posvec, double mass_in) {
+__host__ __device__ particle::particle(v3 posvec, double mass_in) {
 	this->setPosition(posvec);
 	this->setMass(mass_in);
 }
 
-particle::particle(v3 posvec, v3 velvec, v3 accvec) {
+__host__ __device__ particle::particle(v3 posvec, v3 velvec, v3 accvec) {
 	this->setPosition(posvec);
 	this->setVelocity(velvec);
 	this->setAcceleration(accvec);
@@ -194,6 +194,7 @@ void particle::printProps() {
 	printf("id: %d\tpos: (%lf, %lf, %lf)\tvel: (%lf, %lf, %lf)\tacc:(%lf, %lf, %lf)\n", id, pos.x, pos.y, pos.z, vel.x, vel.y, vel.z, acc.x, acc.y, acc.z);
 }
 
+__host__ __device__
 particle::~particle()
 {
 }
