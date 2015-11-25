@@ -42,7 +42,7 @@ __global__ void gravKernel(particle* particles, int size, int simul_length) {
 	//todo: kernel where each thread handles/updated a single particle
 	//hard part: make this work across blocks like in mp 5.2 (not sure if this is doable)
 
-	__shared__ particle particles_shared[BLOCK_SIZE];
+	__shared__ float particles_shared[BLOCK_SIZE];
 	//above DOES NOT COMPILE (shared array of objects)
 	//see Dynamic Shared Memory: http://devblogs.nvidia.com/parallelforall/using-shared-memory-cuda-cc/
 	//see response: http://stackoverflow.com/questions/27230621/cuda-shared-memory-inconsistent-results
@@ -50,7 +50,7 @@ __global__ void gravKernel(particle* particles, int size, int simul_length) {
 	int i = threadIdx.x + blockDim.x * blockIdx.x;
 	if (i < size) {
 		//load phase
-		particles_shared[threadIdx.x] = particles[i];
+		//particles_shared[threadIdx.x] = particles[i];
 		__syncthreads();
 
 	}
