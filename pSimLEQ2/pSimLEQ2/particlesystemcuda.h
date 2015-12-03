@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 
+// Two options for choosing which array to access
 enum ParticleArray
 {
 	PARTICLESYS_POS,
@@ -31,12 +32,17 @@ protected:
 
 	unsigned int numBodies;
 	unsigned int blockSize;
+
+	// currentRead and currentWrite are 0 or 1 according 
+	// to index in devPos that it corresponds to
 	unsigned int currentRead;
 	unsigned int currentWrite;
 
+	// one particle array on host
 	T *hostPos[1];
 	T *hostVel;
 
+	// two particle arrays on device, one for read one for write
 	T *devPos[2];
 	T *devVel;
 };
@@ -62,6 +68,7 @@ ParticleSystemCUDA<T>::~ParticleSystemCUDA()
 	numBodies = 0;
 }
 
+// init host arrays to 0
 template <typename T>
 void ParticleSystemCUDA<T>::_initialize(int nBodies)
 {
@@ -83,6 +90,7 @@ void ParticleSystemCUDA<T>::_teardown()
 	delete[] hostVel;
 }
 
+// update the system according to delta time dt
 template <typename T>
 void ParticleSystemCUDA<T>::update(T dt)
 {
@@ -91,7 +99,7 @@ void ParticleSystemCUDA<T>::update(T dt)
 	std::swap(currentRead, currentWrite);
 }
 
-// device particle array -> host
+// device to host
 // returns new host particle array
 template <typename T>
 T *ParticleSystemCUDA<T>::getArray(ParticleArray array)
@@ -117,6 +125,7 @@ T *ParticleSystemCUDA<T>::getArray(ParticleArray array)
 	return hostdata;
 }
 
+// host to device
 template <typename T>
 void ParticleSystemCUDA<T>::setArray(ParticleArray array, const T *data)
 {
