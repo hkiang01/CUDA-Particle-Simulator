@@ -1,14 +1,16 @@
 #include "vectors.h"
 //#include "particlesystemcuda.h"
 
-
+#define BLOCK_SIZE 256
 #define cudaCheck(stmt) do {													\
 	cudaError_t err = stmt;														\
 	if (err != cudaSuccess) {													\
 		fprintf(stderr, "Failed to run stmt ", #stmt);							\
 		fprintf(stderr, "Got CUDA error ... %s\n", cudaGetErrorString(err));	\
-			}																			\
+			}																	\
 } while (0);
+
+__constant__ const double GRAVITY = 0.066742;
 
 template <typename T>
 struct DeviceData
@@ -18,13 +20,37 @@ struct DeviceData
 };
 
 template <typename T>
-__device__ typename vec3<T>::Type
-computeAccel(typename vec4<T>::Type curPos, typename vec4<T>::Type *positions)
+__device__ typename vec4<T>::Type
+computeAccel(typename vec4<T>::Type curPos, typename vec4<T>::Type *positions, unsigned int nBodies, double mass)
 {
-	typename vec3<T>::Type accel = { 0.0f, 0.0f, 0.0f };
+	// todo: multiple blocks case
+	// assumption: all particles same mass (passed in)
 
-	// Harrison: figure out what goes here
+	__shared__ float4 particles_shared[BLOCK_SIZE];
+	typename vec4<T>::Type accel = { 0.0f, 0.0f, 0.0f };
 
+	unsigned int id = threadIdx.x + blockIdx.x * blockDim.x;
+	if (id >= nBodies) return accel;
+
+	//load phase
+	particles_shared[threadIdx.x] = positions[id];
+	__syncthreads();
+
+	unsigned int i;
+	for (i = 0; i < BLOCK_SIZE && i < nBodies; i++) {
+		typename vec4<T>::Type other = particles_shared[threadIdx.x];
+		if (other.x != curPos.x || other.y != curPos.y || other.z != curPos.z) { //don't affect own particle
+			typename vec3<T>::Type ray = { curPos.x - other.x, curPos.y - other.y, curPos.z - other.z };
+			double dist = ray.x * ray.x + ray.y * ray.y + ray.z * ray.z;
+			double xadd = GRAVITY * mass * (double)ray.x / (dist * dist * dist);
+			double yadd = GRAVITY * mass * (double)ray.y / (dist * dist * dist);
+			double zadd = GRAVITY * mass * (double)ray.z / (dist * dist * dist);
+			atomicAdd(&(accel.x), xadd);
+			atomicAdd(&(accel.y), yadd);
+			atomicAdd(&(accel.z), zadd);
+		}
+	}
+	__syncthreads();
 	return accel;
 }
 
@@ -43,7 +69,9 @@ __global__ void interaction(typename vec4<T>::Type *__restrict__ newPos,
 
 	typename vec4<T>::Type position = oldPos[index];
 	typename vec4<T>::Type velocity = vel[index];
-	typename vec3<T>::Type accel = computeAccel<T>(position, oldPos);
+	typename vec4<T>::Type accel = computeAccel<T>(position, oldPos, nBodies, (double)5.00);
+
+
 
 	velocity.x += accel.x * dt;
 	velocity.y += accel.y * dt;
@@ -65,9 +93,9 @@ void systemStep(DeviceData<T> *devArrays, unsigned int curRead, float dt, unsign
 	int sharedMemSize = blockSize * 4 * sizeof(T);
 
 	interaction<T><<< numBlocks, blockSize, sharedMemSize >>>
-		((typename vec4<T>::Type *)devArrays.devPos[1 - curRead],
-		 (typename vec4<T>::Type *)devArrays.devPos[curRead],
-		 (typename vec4<T>::Type *)devArrays.devVel,
+		((typename vec4<T>::Type *)devArrays->devPos[1 - curRead],
+		 (typename vec4<T>::Type *)devArrays->devPos[curRead],
+		 (typename vec4<T>::Type *)devArrays->devVel,
 		 nBodies, dt);
 
 }
