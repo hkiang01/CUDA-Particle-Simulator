@@ -138,4 +138,6 @@ int main(int argc, char **argv)
 	// TODO: figure out how to render/display
 
 	teardown();
+
+	system("pause");
 }
