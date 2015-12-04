@@ -54,7 +54,7 @@ protected:
 	T *hostPos[1];
 	T *hostVel;
 
-	DeviceData<T> *devArrays;
+	DeviceData<T> devArrays;
 };
 
 template <typename T>
@@ -66,6 +66,7 @@ ParticleSystemCUDA<T>::ParticleSystemCUDA(unsigned int nBodies,
 	currentWrite(1)
 {
 	hostPos[0] = 0;
+	hostPos[1] = 0;
 	hostVel = 0;
 
 	_initialize(nBodies);
@@ -87,9 +88,13 @@ void ParticleSystemCUDA<T>::_initialize(int nBodies)
 	unsigned int memSize = sizeof(T) * 4 * numBodies;
 
 	hostPos[0] = new T[numBodies * 4];
+	hostPos[1] = new T[numBodies * 4];
 	hostVel = new T[numBodies * 4];
 
+	devArrays = new DeviceData < T > ;
+
 	memset(hostPos[0], 0, memSize);
+	memset(hostPos[1], 0, memSize);
 	memset(hostVel, 0, memSize);
 }
 
@@ -97,6 +102,7 @@ template <typename T>
 void ParticleSystemCUDA<T>::_teardown()
 {
 	delete[] hostPos[0];
+	delete[] hostPos[1];
 	delete[] hostVel;
 }
 
