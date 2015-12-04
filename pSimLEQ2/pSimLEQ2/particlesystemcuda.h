@@ -20,7 +20,7 @@ struct DeviceData
 };
 
 template <typename T>
-void systemStep(T *devPos, T *devVel, unsigned int curRead, 
+void systemStep(DeviceData<T> *devArrays, unsigned int curRead,
 	float dt, unsigned int nBodies, int blockSize);
 
 template <typename T>
@@ -35,7 +35,7 @@ public:
 
 	T *getArray(ParticleArray array);
 	void setArray(ParticleArray array, const T *data);
-	unsigned int getNumBodies() const { return numbodies; }
+	unsigned int getNumBodies() const { return numBodies; }
 
 protected:
 	ParticleSystemCUDA() {}
@@ -54,7 +54,7 @@ protected:
 	T *hostPos[1];
 	T *hostVel;
 
-	DeviceData<T> devArrays;
+	DeviceData<T> *devArrays;
 };
 
 template <typename T>
@@ -91,7 +91,7 @@ void ParticleSystemCUDA<T>::_initialize(int nBodies)
 	hostPos[1] = new T[numBodies * 4];
 	hostVel = new T[numBodies * 4];
 
-	devArrays = new DeviceData < T > ;
+	devArrays = new DeviceData < T >[1];
 
 	memset(hostPos[0], 0, memSize);
 	memset(hostPos[1], 0, memSize);
@@ -104,6 +104,9 @@ void ParticleSystemCUDA<T>::_teardown()
 	delete[] hostPos[0];
 	delete[] hostPos[1];
 	delete[] hostVel;
+	cudaFree((void**)devArrays[0].devPos[0]);
+	cudaFree((void**)devArrays[0].devPos[1]);
+	delete[] devArrays;
 }
 
 // update the system according to delta time dt
@@ -127,13 +130,13 @@ T *ParticleSystemCUDA<T>::getArray(ParticleArray array)
 	switch (array)
 	{
 	case PARTICLESYS_POS:
-		hostdata = hostPos[0];
-		devdata = devArrays.devPos[currentRead];
+		hostdata = hostPos[currentRead];
+		devdata = devArrays->devPos[currentRead];
 		break;
 
 	case PARTICLESYS_VEL:
 		hostdata = hostVel;
-		devdata = devArrays.devVel;
+		devdata = devArrays->devVel;
 		break;
 	}
 
@@ -152,10 +155,10 @@ void ParticleSystemCUDA<T>::setArray(ParticleArray array, const T *data)
 	switch (array)
 	{
 	case PARTICLESYS_POS:
-		cudaMemcpy(devArrays.devPos[currentRead], data, numBodies * 4 * sizeof(T), cudaMemcpyHostToDevice);
+		cudaMemcpy(devArrays->devPos[currentRead], data, numBodies * 4 * sizeof(T), cudaMemcpyHostToDevice);
 		break;
 	case PARTICLESYS_VEL:
-		cudaMemcpy(devArrays.devVel, data, numBodies * 4 * sizeof(T), cudaMemcpyHostToDevice);
+		cudaMemcpy(devArrays->devVel, data, numBodies * 4 * sizeof(T), cudaMemcpyHostToDevice);
 		break;
 	}
 }

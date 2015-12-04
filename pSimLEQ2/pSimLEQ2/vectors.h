@@ -36,6 +36,7 @@ dot(float3 v0, float3 v1)
 	return v0.x*v1.x + v0.y*v1.y + v0.z*v1.z;
 }
 
+// Randomly assigns values to position and velocity of particles
 template <typename T>
 void randomize(T *pos, T *vel, float clusterScale, float velocityScale, int nBodies, bool vec4vel)
 {

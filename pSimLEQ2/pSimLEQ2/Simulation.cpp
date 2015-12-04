@@ -1,4 +1,7 @@
 #include <cstring>
+#include <iostream>
+
+using namespace std;
 
 #include "particlesystemcuda.h"
 #include "vectors.h"
@@ -38,15 +41,20 @@ public:
 	}
 	static void display()
 	{
-		// TBI
+		for (int i = 0; i <= 10; i++)
+			cout << sim->hostPos[i] << ' ';
+		cout << '\n';
+		for (int i = 0; i <= 10; i++)
+			cout << sim->hostVel[i] << ' ';
+		cout << '\n';
 	}
-	static void getArrays(T *pos, T *vel)
+	static void getArrays()
 	{
 		T *_pos = sim->particleSystem->getArray(PARTICLESYS_POS);
 		T *_vel = sim->particleSystem->getArray(PARTICLESYS_VEL);
 
-		memcpy(pos, _pos, sim->particleSystem->getNumBodies() * 4 * sizeof(T));
-		memcpy(vel, _vel, sim->particleSystem->getNumBodies() * 4 * sizeof(T));
+		memcpy(sim->hostPos, _pos, sim->particleSystem->getNumBodies() * 4 * sizeof(T));
+		memcpy(sim->hostVel, _vel, sim->particleSystem->getNumBodies() * 4 * sizeof(T));
 	}
 	static void setArrays(const T *pos, const T *vel)
 	{
@@ -133,11 +141,15 @@ int main(int argc, char **argv)
 	Simulation<float>::init(numbodies);
 	Simulation<float>::reset(numbodies);
 
+	Simulation<float>::display();
+
 	Simulation<float>::run(NUM_ITERATIONS);
 
-	// TODO: figure out how to render/display
+	Simulation<float>::getArrays();
 
-	teardown();
+	Simulation<float>::display();
 
 	system("pause");
+	teardown();
+
 }

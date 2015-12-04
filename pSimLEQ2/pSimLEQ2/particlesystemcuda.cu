@@ -2,14 +2,14 @@
 //#include "particlesystemcuda.h"
 
 #define BLOCK_SIZE 256
-const double GRAVITY = 0.066742;
+#define GRAVITY 0.066742
 
 #define cudaCheck(stmt) do {													\
 	cudaError_t err = stmt;														\
 	if (err != cudaSuccess) {													\
 		fprintf(stderr, "Failed to run stmt ", #stmt);							\
 		fprintf(stderr, "Got CUDA error ... %s\n", cudaGetErrorString(err));	\
-			}																			\
+			}																	\
 } while (0);
 
 template <typename T>
@@ -20,25 +20,23 @@ struct DeviceData
 };
 
 template <typename T>
-__device__ typename vec3<T>::Type
-computeAccel(typename vec4<T>::Type curPos, typename vec4<T>::Type *positions, double mass)
+__device__ typename vec4<T>::Type
+computeAccel(typename vec4<T>::Type curPos, typename vec4<T>::Type *positions, unsigned int nBodies, double mass)
 {
-	// todo: gather or scatter kernel
 	// todo: multiple blocks case
 	// assumption: all particles same mass (passed in)
 
-	__shared__ float particles_shared[BLOCK_SIZE];
+	__shared__ float4 particles_shared[BLOCK_SIZE];
+	typename vec4<T>::Type accel = { 0.0f, 0.0f, 0.0f };
 
-	int id = threadIdx.x + blockIdx.x * blockDim.x;
-	if (id >= nBodies) return;
+	unsigned int id = threadIdx.x + blockIdx.x * blockDim.x;
+	if (id >= nBodies) return accel;
 
 	//load phase
-	particles_shared[threadIdx.x] = positions[i];
+	particles_shared[threadIdx.x] = positions[id];
 	__syncthreads();
 
-	typename vec3<T>::Type accel = { 0.0f, 0.0f, 0.0f };
-
-	int i;
+	unsigned int i;
 	for (i = 0; i < BLOCK_SIZE && i < nBodies; i++) {
 		typename vec4<T>::Type other = particles_shared[threadIdx.x];
 		if (other.x != curPos.x || other.y != curPos.y || other.z != curPos.z) { //don't affect own particle
@@ -71,7 +69,8 @@ __global__ void interaction(typename vec4<T>::Type *__restrict__ newPos,
 
 	typename vec4<T>::Type position = oldPos[index];
 	typename vec4<T>::Type velocity = vel[index];
-	typename vec4<T>::Type accel = computeAccel<T>(position, oldPos, (double)5.00);
+	typename vec4<T>::Type accel = computeAccel<T>(position, oldPos, nBodies, (double)5.00);
+
 
 	velocity.x += accel.x * dt;
 	velocity.y += accel.y * dt;
@@ -93,9 +92,9 @@ void systemStep(DeviceData<T> *devArrays, unsigned int curRead, float dt, unsign
 	int sharedMemSize = blockSize * 4 * sizeof(T);
 
 	interaction<T><<< numBlocks, blockSize, sharedMemSize >>>
-		((typename vec4<T>::Type *)devArrays.devPos[1 - curRead],
-		 (typename vec4<T>::Type *)devArrays.devPos[curRead],
-		 (typename vec4<T>::Type *)devArrays.devVel,
+		((typename vec4<T>::Type *)devArrays->devPos[1 - curRead],
+		 (typename vec4<T>::Type *)devArrays->devPos[curRead],
+		 (typename vec4<T>::Type *)devArrays->devVel,
 		 nBodies, dt);
 
 }
