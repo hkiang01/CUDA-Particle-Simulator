@@ -36,7 +36,7 @@ computeAccel(typename vec4<T>::Type curPos, typename vec4<T>::Type *positions, d
 		typename vec4<T>::Type other = particles_shared[threadIdx.x];
 		if (other.x != curPos.x || other.y != curPos.y || other.z != curPos.z) { //don't affect own particle
 			typename vec3<T>::Type ray = { curPos.x - other.x, curPos.y - other.y, curPos.z - other.z };
-			double dist = ray.x * ray.x + ray.x * ray.y + ray.z * ray.z;
+			double dist = ray.x * ray.x + ray.y * ray.y + ray.z * ray.z;
 			double xadd = GRAVITY * mass * (double)ray.x / (dist * dist * dist);
 			double yadd = GRAVITY * mass * (double)ray.y / (dist * dist * dist);
 			double zadd = GRAVITY * mass * (double)ray.z / (dist * dist * dist);
