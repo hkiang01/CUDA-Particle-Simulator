@@ -20,7 +20,7 @@ struct DeviceData
 };
 
 template <typename T>
-void systemStep(T *devPos, T *devVel, unsigned int curRead, 
+void systemStep(DeviceData<T> *devArrays, unsigned int curRead,
 	float dt, unsigned int nBodies, int blockSize);
 
 template <typename T>
@@ -122,12 +122,12 @@ T *ParticleSystemCUDA<T>::getArray(ParticleArray array)
 	{
 	case PARTICLESYS_POS:
 		hostdata = hostPos[0];
-		devdata = devArrays.devPos[currentRead];
+		devdata = devArrays->devPos[currentRead];
 		break;
 
 	case PARTICLESYS_VEL:
 		hostdata = hostVel;
-		devdata = devArrays.devVel;
+		devdata = devArrays->devVel;
 		break;
 	}
 
@@ -146,10 +146,10 @@ void ParticleSystemCUDA<T>::setArray(ParticleArray array, const T *data)
 	switch (array)
 	{
 	case PARTICLESYS_POS:
-		cudaMemcpy(devArrays.devPos[currentRead], data, numBodies * 4 * sizeof(T), cudaMemcpyHostToDevice);
+		cudaMemcpy(devArrays->devPos[currentRead], data, numBodies * 4 * sizeof(T), cudaMemcpyHostToDevice);
 		break;
 	case PARTICLESYS_VEL:
-		cudaMemcpy(devArrays.devVel, data, numBodies * 4 * sizeof(T), cudaMemcpyHostToDevice);
+		cudaMemcpy(devArrays->devVel, data, numBodies * 4 * sizeof(T), cudaMemcpyHostToDevice);
 		break;
 	}
 }
