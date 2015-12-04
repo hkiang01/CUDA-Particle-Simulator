@@ -12,6 +12,18 @@ enum ParticleArray
 };
 
 template <typename T>
+struct DeviceData
+{
+	// two particle arrays on device, one for read one for write
+	T *devPos[2];
+	T *devVel;
+};
+
+template <typename T>
+void systemStep(T *devPos, T *devVel, unsigned int curRead, 
+	float dt, unsigned int nBodies, int blockSize);
+
+template <typename T>
 class ParticleSystemCUDA
 {
 public:
@@ -42,9 +54,7 @@ protected:
 	T *hostPos[1];
 	T *hostVel;
 
-	// two particle arrays on device, one for read one for write
-	T *devPos[2];
-	T *devVel;
+	DeviceData<T> *devArrays;
 };
 
 template <typename T>
@@ -94,7 +104,8 @@ void ParticleSystemCUDA<T>::_teardown()
 template <typename T>
 void ParticleSystemCUDA<T>::update(T dt)
 {
-	//tempname<T>(); //caller to kernel in cuda file
+	//caller to kernel in cuda file
+	systemStep(devArrays, currentRead, (float)dt, numBodies, blockSize);
 
 	std::swap(currentRead, currentWrite);
 }
@@ -111,12 +122,12 @@ T *ParticleSystemCUDA<T>::getArray(ParticleArray array)
 	{
 	case PARTICLESYS_POS:
 		hostdata = hostPos[0];
-		devdata = devPos[currentRead];
+		devdata = devArrays.devPos[currentRead];
 		break;
 
 	case PARTICLESYS_VEL:
 		hostdata = hostVel;
-		devdata = devVel;
+		devdata = devArrays.devVel;
 		break;
 	}
 
@@ -135,10 +146,10 @@ void ParticleSystemCUDA<T>::setArray(ParticleArray array, const T *data)
 	switch (array)
 	{
 	case PARTICLESYS_POS:
-		cudaMemcpy(devPos[currentRead], data, numBodies * 4 * sizeof(T), cudaMemcpyHostToDevice);
+		cudaMemcpy(devArrays.devPos[currentRead], data, numBodies * 4 * sizeof(T), cudaMemcpyHostToDevice);
 		break;
 	case PARTICLESYS_VEL:
-		cudaMemcpy(devVel, data, numBodies * 4 * sizeof(T), cudaMemcpyHostToDevice);
+		cudaMemcpy(devArrays.devVel, data, numBodies * 4 * sizeof(T), cudaMemcpyHostToDevice);
 		break;
 	}
 }

@@ -1,5 +1,5 @@
 #include "vectors.h"
-#include "particlesystemcuda.h"
+//#include "particlesystemcuda.h"
 
 
 #define cudaCheck(stmt) do {													\
@@ -9,6 +9,13 @@
 		fprintf(stderr, "Got CUDA error ... %s\n", cudaGetErrorString(err));	\
 			}																			\
 } while (0);
+
+template <typename T>
+struct DeviceData
+{
+	T *devPos[2];
+	T *devVel;
+};
 
 template <typename T>
 __device__ typename vec3<T>::Type
@@ -36,7 +43,7 @@ __global__ void interaction(typename vec4<T>::Type *__restrict__ newPos,
 
 	typename vec4<T>::Type position = oldPos[index];
 	typename vec4<T>::Type velocity = vel[index];
-	typename vec4<T>::Type accel = computeAccel<T>(position, oldPos);
+	typename vec3<T>::Type accel = computeAccel<T>(position, oldPos);
 
 	velocity.x += accel.x * dt;
 	velocity.y += accel.y * dt;
@@ -52,16 +59,19 @@ __global__ void interaction(typename vec4<T>::Type *__restrict__ newPos,
 }
 
 template <typename T>
-void systemStep(T *devPos, T *devVel, unsigned int curRead, float dt, unsigned int nBodies, int blockSize)
+void systemStep(DeviceData<T> *devArrays, unsigned int curRead, float dt, unsigned int nBodies, int blockSize)
 {
 	int numBlocks = (nBodies - 1) / blockSize + 1;
 	int sharedMemSize = blockSize * 4 * sizeof(T);
 
-	interaction<T> << < numBlocks, blockSize, sharedMemSize >> >
-		((typename vec4<T>::Type *)devPos[1 - curRead],
-		(typename vec4<T>::Type *)devPos[curRead],
-		(typename vec4<T>::type *)devVel,
-		nBodies, dt);
+	interaction<T><<< numBlocks, blockSize, sharedMemSize >>>
+		((typename vec4<T>::Type *)devArrays.devPos[1 - curRead],
+		 (typename vec4<T>::Type *)devArrays.devPos[curRead],
+		 (typename vec4<T>::Type *)devArrays.devVel,
+		 nBodies, dt);
 
 }
+
+// Explicit specialization
+template void systemStep<float>(DeviceData<float> *devArrays, unsigned int curRead, float dt, unsigned int nBodies, int blockSize);
 
