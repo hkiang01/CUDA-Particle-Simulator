@@ -113,6 +113,8 @@ void ParticleSystemCUDA<T>::_teardown()
 template <typename T>
 void ParticleSystemCUDA<T>::update(T dt)
 {
+	//printf("Calling update for duration: %f\n", dt);
+
 	//caller to kernel in cuda file
 	systemStep(devArrays, currentRead, (float)dt, numBodies, blockSize);
 

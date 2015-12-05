@@ -150,6 +150,6 @@ int main(int argc, char **argv)
 	Simulation<float>::display();
 
 	system("pause");
-	teardown();
+	//teardown();
 
 }

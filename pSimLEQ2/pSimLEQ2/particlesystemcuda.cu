@@ -27,7 +27,7 @@ computeAccel(typename vec4<T>::Type curPos, typename vec4<T>::Type *positions, u
 	// assumption: all particles same mass (passed in)
 
 	__shared__ float4 particles_shared[BLOCK_SIZE];
-	typename vec4<T>::Type accel = { 0.0f, 0.0f, 0.0f };
+	typename vec4<T>::Type accel = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 	unsigned int id = threadIdx.x + blockIdx.x * blockDim.x;
 	if (id >= nBodies) return accel;
@@ -64,13 +64,15 @@ __global__ void interaction(typename vec4<T>::Type *__restrict__ newPos,
 {
 	int index = blockIdx.x * blockDim.x + threadIdx.x;
 	
+	printf("interaction index: %d\n", index); //this doesn't print???
+
 	if (index >= nBodies)
 		return;
 
 	typename vec4<T>::Type position = oldPos[index];
 	typename vec4<T>::Type velocity = vel[index];
+	printf("interaction - before:\toldPos=(%f,%f,%f)\tvel=(%f,%f,%f)\n", position.x, position.y, position.z, velocity.x, velocity.y, velocity.z);
 	typename vec4<T>::Type accel = computeAccel<T>(position, oldPos, nBodies, (double)5.00);
-
 
 	velocity.x += accel.x * dt;
 	velocity.y += accel.y * dt;
@@ -83,6 +85,8 @@ __global__ void interaction(typename vec4<T>::Type *__restrict__ newPos,
 	newPos[index] = position;
 	vel[index] = velocity;
 
+	printf("interaction - after:\tpos=(%f, %f, %f)\tvel=(%f, %f, %f)\tacc=(%f, %f, %f)\n", position.x, position.y, position.z, velocity.x, velocity.y, velocity.z, accel.x, accel.y, accel.z);
+
 }
 
 template <typename T>
@@ -90,6 +94,8 @@ void systemStep(DeviceData<T> *devArrays, unsigned int curRead, float dt, unsign
 {
 	int numBlocks = (nBodies - 1) / blockSize + 1;
 	int sharedMemSize = blockSize * 4 * sizeof(T);
+
+	printf("systemStep\n");
 
 	interaction<T><<< numBlocks, blockSize, sharedMemSize >>>
 		((typename vec4<T>::Type *)devArrays->devPos[1 - curRead],
