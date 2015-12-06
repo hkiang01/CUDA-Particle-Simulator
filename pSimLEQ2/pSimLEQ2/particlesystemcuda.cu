@@ -1,4 +1,5 @@
 #include "vectors.h"
+#include <iostream>
 //#include "particlesystemcuda.h"
 
 #define BLOCK_SIZE 256
@@ -95,9 +96,10 @@ void systemStep(DeviceData<T> *devArrays, unsigned int curRead, float dt, unsign
 	int numBlocks = (nBodies - 1) / blockSize + 1;
 	int sharedMemSize = blockSize * 4 * sizeof(T);
 
-	printf("systemStep\n");
+	//printf("sysstemStep:\t dt=%f\tnBodies=%u\n", dt, nBodies);
+	//printf("systemStep:\tnumBlocks=%d\tblockSize=%d\tsharedMemSize=%d\n", numBlocks, blockSize, sharedMemSize);
 
-	interaction<T><<< numBlocks, blockSize, sharedMemSize >>>
+	interaction<T><<< numBlocks, blockSize >>>
 		((typename vec4<T>::Type *)devArrays->devPos[1 - curRead],
 		 (typename vec4<T>::Type *)devArrays->devPos[curRead],
 		 (typename vec4<T>::Type *)devArrays->devVel,

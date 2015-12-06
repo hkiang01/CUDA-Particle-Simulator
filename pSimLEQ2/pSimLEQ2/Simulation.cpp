@@ -7,7 +7,7 @@ using namespace std;
 #include "vectors.h"
 
 #define BLOCKSIZE 256
-#define NUM_ITERATIONS 10
+#define NUM_ITERATIONS 2
 
 int g_numBodies = 16384;
 
@@ -39,14 +39,46 @@ public:
 	{
 		sim->particleSystem->update(timestep);
 	}
-	static void display()
+	static void display(int numbodies)
 	{
-		for (int i = 0; i <= 10; i++)
-			cout << sim->hostPos[i] << ' ';
-		cout << '\n';
-		for (int i = 0; i <= 10; i++)
-			cout << sim->hostVel[i] << ' ';
-		cout << '\n';
+		for (int i = 0; i < numbodies; i++) {
+			for (int j = i; j < i+4; j++) {
+				switch (j-i) {
+					case 0:
+						cout << "pos[" << i << "](x,y,z,w): (" << sim->hostPos[j];
+						break;
+					case 1:
+					case 2:
+						cout << "," << sim->hostPos[j];
+						break;
+					case 3:
+						cout << "," << sim << ")" << endl;
+						break;
+					default:
+						break;
+				}
+			}
+		}
+		cout << endl;
+		for (int i = 0; i < numbodies; i++) {
+			for (int j = i; j < i + 4; j++) {
+				switch (j-i) {
+				case 0:
+					cout << "vel[" << i << "](x,y,z,w): (" << sim->hostVel[j];
+					break;
+				case 1:
+				case 2:
+					cout << "," << sim->hostVel[j];
+					break;
+				case 3:
+					cout << "," << sim << ")" << endl;
+					break;
+				default:
+					break;
+				}
+			}
+		}
+		cout << endl;
 	}
 	static void getArrays()
 	{
@@ -135,19 +167,19 @@ void display()
 ********************/
 int main(int argc, char **argv)
 {
-	int numbodies = BLOCKSIZE; //must be multiple of blocksize
+	int numbodies = 2; //must be multiple of blocksize
 
 	Simulation<float>::Create();
 	Simulation<float>::init(numbodies);
 	Simulation<float>::reset(numbodies);
 
-	Simulation<float>::display();
+	Simulation<float>::display(numbodies);
 
 	Simulation<float>::run(NUM_ITERATIONS);
 
 	Simulation<float>::getArrays();
 
-	Simulation<float>::display();
+	Simulation<float>::display(numbodies);
 
 	system("pause");
 	//teardown();
