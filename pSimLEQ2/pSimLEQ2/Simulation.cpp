@@ -58,11 +58,8 @@ public:
 						break;
 				}
 			}
-		}
-		cout << endl;
-		for (int i = 0; i < numbodies; i++) {
 			for (int j = i; j < i + 4; j++) {
-				switch (j-i) {
+				switch (j - i) {
 				case 0:
 					cout << "vel[" << i << "](x,y,z,w): (" << sim->hostVel[j];
 					break;
