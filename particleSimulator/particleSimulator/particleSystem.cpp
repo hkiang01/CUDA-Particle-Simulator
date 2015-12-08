@@ -11,6 +11,7 @@ particleSystem::particleSystem(unsigned int numParticles)
 	unsigned int i;
 	for (i = 0; i < numParticles; i++) {
 		particle p = particle();
+		p.setID(i);
 		p.randomPosition(0.0, (float)WORLD_DIM);
 		p.randomVelocity(0.0, (float)MAX_VEL);
 		p.setMass((float)UNIVERSAL_MASS);
@@ -54,73 +55,53 @@ void particleSystem::gravitySerial(unsigned int simulationLength) {
 }
 
 double* particleSystem::particlesPosDoubleArray() {
-	particlesPosDoubleArrayCalled = true;
-	double* posArray = (double*)std::malloc(sizeof(double) * NUM_PARTICLES * 3); //x,y,z
-	double* curParticle = posArray;
-	unsigned int counter = 0;
+	particlesPosDoubleArrayCalled = true; //for destructor
+	double* posArray = new double[NUM_PARTICLES * 3];
+	unsigned int i = 0;
 	for (std::vector<particle>::iterator it = particles.begin(); it != particles.end(); ++it) {
-		*curParticle = it->getPosition().x;
-		curParticle += sizeof(double);
-		*curParticle = it->getPosition().y;
-		curParticle += sizeof(double);
-		*curParticle = it->getPosition().z;
-		if (counter < NUM_PARTICLES - 1) curParticle += sizeof(double);
-		counter++;
+		posArray[i] = it->getPosition().x;
+		posArray[i + 1] = it->getPosition().y;
+		posArray[i + 2] = it->getPosition().z;
+		i += 3;
 	}
-	posDoubleArrayPtr = posArray;
+	posDoubleArrayPtr = posArray; //for destructor
 	return posArray;
 }
 
 double* particleSystem::particlesVelDoubleArray() {
-	particlesVelDoubleArrayCalled = true;
-	double* velArray = (double*)std::malloc(sizeof(double) * NUM_PARTICLES * 3); //x,y,z
-	double* curParticle = velArray;
-	unsigned int counter = 0;
+	particlesVelDoubleArrayCalled = true; //for destructor
+	double* velArray = new double[NUM_PARTICLES * 3];
+	unsigned int i = 0;
 	for (std::vector<particle>::iterator it = particles.begin(); it != particles.end(); ++it) {
-		*curParticle = it->getVelocity().x;
-		curParticle += sizeof(double);
-		*curParticle = it->getVelocity().y;
-		curParticle += sizeof(double);
-		*curParticle = it->getVelocity().z;
-		if (counter < NUM_PARTICLES - 1) curParticle += sizeof(double);
-		counter++;
+		velArray[i] = it->getVelocity().x;
+		velArray[i + 1] = it->getVelocity().y;
+		velArray[i + 2] = it->getVelocity().z;
+		i += 3;
 	}
-	velDoubleArrayPtr = velArray;
+	velDoubleArrayPtr = velArray; //for destructor
 	return velArray;
 }
 
 void particleSystem::printPosDoubleArray(double* posDoubleArray) {
 	double x, y, z;
 	unsigned int i;
-	//shouldn't change the pointer position when control is handed back to caller
-	double* origPosition = posDoubleArray;
-	for (i = 0; i < NUM_PARTICLES; i++) {
-		x = *posDoubleArray;
-		posDoubleArray += sizeof(double);
-		y = *posDoubleArray;
-		posDoubleArray += sizeof(double);
-		z = *posDoubleArray;
-		posDoubleArray += sizeof(double);
-		printf("id: %d\tpos: (%lf, %lf, %lf)\n", i, x, y, z);
+	for (i = 0; i < NUM_PARTICLES * 3; i+=3) {
+		x = posDoubleArray[i];
+		y = posDoubleArray[i + 1];
+		z = posDoubleArray[i + 2];
+		printf("id: %d\tpos: (%lf, %lf, %lf)\n", i/3, x, y, z);
 	}
-	posDoubleArray = origPosition;
 }
 
 void particleSystem::printVelDoubleArray(double* velDoubleArray) {
 	double x, y, z;
 	unsigned int i;
-	//shouldn't change the pointer position when control is handed back to caller
-	double* origPosition = velDoubleArray;
-	for (i = 0; i < NUM_PARTICLES; i++) {
-		x = *velDoubleArray;
-		velDoubleArray += sizeof(double);
-		y = *velDoubleArray;
-		velDoubleArray += sizeof(double);
-		z = *velDoubleArray;
-		velDoubleArray += sizeof(double);
-		printf("id: %d\tvel: (%lf, %lf, %lf)\n", i, x, y, z);
+	for (i = 0; i < NUM_PARTICLES * 3; i += 3) {
+		x = velDoubleArray[i];
+		y = velDoubleArray[i + 1];
+		z = velDoubleArray[i + 2];
+		printf("id: %d\tvel: (%lf, %lf, %lf)\n", i / 3, x, y, z);
 	}
-	velDoubleArray = origPosition;
 }
 
 particleSystem::~particleSystem()

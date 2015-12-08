@@ -59,12 +59,12 @@ int main()
 
 	particleSystem parSys(NUM_PARTICLES);
 	parSys.printParticles();
+	//parSys.gravitySerial(SIMULATION_LENGTH);
 	double* pos = parSys.particlesPosDoubleArray();
 	double* vel = parSys.particlesVelDoubleArray();
+	std::cout << std::endl;
 	parSys.printPosDoubleArray(pos);
 	parSys.printVelDoubleArray(vel);
-	//parSys.gravitySerial(SIMULATION_LENGTH);
-
 
 	system("pause"); //see output of terminal
 	return 0;
