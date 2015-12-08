@@ -65,31 +65,6 @@ int main()
 	return 0;
 }
 
-void gravitySerial(std::vector<particle> particles) {
-	int counter = 0;
-	while (counter < SIMULATION_LENGTH) {
-		for (std::vector<particle>::iterator it = particles.begin(); it != particles.end(); ++it) {
-			v3 force = v3(0.0, 0.0, 0.0);
-			for (std::vector<particle>::iterator itt = particles.begin(); itt != particles.end(); ++itt) {
-				if (it != itt) {
-					// force on i (it) by j (itt)
-					v3 currRay = it->getRay(*itt);
-					double dist = it->getDistance(*itt);
-					double mi = it->getMass();
-					double mj = itt->getMass();
-					force.x += (double)GRAVITY * (double)mj * (double)currRay.x / (double)pow(dist, 3.0);
-					force.y += (double)GRAVITY * (double)mj * (double)currRay.y / (double)pow(dist, 3.0);
-					force.z += (double)GRAVITY * (double)mj * (double)currRay.z / (double)pow(dist, 3.0);
-				}
-			}
-			it->updateParticle(EPOCH, force);
-			it->printProps();
-			std::cout << "Distance: " << it->getDistance(*(it++)) << std::endl;
-		}
-		counter++;
-	}
-}
-
 void gravityWithCuda(particle *particles, int size) {
 	particle *particles_device;
 
