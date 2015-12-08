@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <vector>
+#include <stdlib.h>
 #include "Constants.h"
 #include "particle.h"
 
@@ -19,10 +20,14 @@ public:
 	void gravitySerial(unsigned int simulationLength);
 	double* particlesPosDoubleArray();
 	double* particlesVelDoubleArray();
-	void printPosFloatArray(float* posFloatArray);
-	void printVelFloatArray(float* velFloatArray);
+	void printPosDoubleArray(double* posFloatArray);
+	void printVelDoubleArray(double* velFloatArray);
 
 	std::vector<particle> particles;
+	double* posDoubleArrayPtr;
+	double* velDoubleArrayPtr;
+	bool particlesPosDoubleArrayCalled;
+	bool particlesVelDoubleArrayCalled;
 };
 
 #endif
