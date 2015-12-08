@@ -24,6 +24,10 @@ public:
 	void printVelDoubleArray(double* velFloatArray);
 
 	std::vector<particle> particles;
+	double* posDoubleArrayPtr;
+	double* velDoubleArrayPtr;
+	bool particlesPosDoubleArrayCalled;
+	bool particlesVelDoubleArrayCalled;
 };
 
 #endif

@@ -2,7 +2,8 @@
 
 particleSystem::particleSystem()
 {
-
+	particlesPosDoubleArrayCalled = false;
+	particlesVelDoubleArrayCalled = false;
 }
 
 particleSystem::particleSystem(unsigned int numParticles)
@@ -53,32 +54,38 @@ void particleSystem::gravitySerial(unsigned int simulationLength) {
 }
 
 double* particleSystem::particlesPosDoubleArray() {
-	size_t numParticles = particles.size();
-	double posArray[NUM_PARTICLES * 3]; //x,y,z
+	particlesPosDoubleArrayCalled = true;
+	double* posArray = (double*)std::malloc(sizeof(double) * NUM_PARTICLES * 3); //x,y,z
 	double* curParticle = posArray;
+	unsigned int counter = 0;
 	for (std::vector<particle>::iterator it = particles.begin(); it != particles.end(); ++it) {
 		*curParticle = it->getPosition().x;
 		curParticle += sizeof(double);
 		*curParticle = it->getPosition().y;
 		curParticle += sizeof(double);
 		*curParticle = it->getPosition().z;
-		curParticle += sizeof(double);
+		if (counter < NUM_PARTICLES - 1) curParticle += sizeof(double);
+		counter++;
 	}
+	posDoubleArrayPtr = posArray;
 	return posArray;
 }
 
 double* particleSystem::particlesVelDoubleArray() {
-	size_t numParticles = particles.size();
-	double velArray[NUM_PARTICLES * 3]; //x,y,z
+	particlesVelDoubleArrayCalled = true;
+	double* velArray = (double*)std::malloc(sizeof(double) * NUM_PARTICLES * 3); //x,y,z
 	double* curParticle = velArray;
+	unsigned int counter = 0;
 	for (std::vector<particle>::iterator it = particles.begin(); it != particles.end(); ++it) {
 		*curParticle = it->getVelocity().x;
 		curParticle += sizeof(double);
 		*curParticle = it->getVelocity().y;
 		curParticle += sizeof(double);
 		*curParticle = it->getVelocity().z;
-		curParticle += sizeof(double);
+		if (counter < NUM_PARTICLES - 1) curParticle += sizeof(double);
+		counter++;
 	}
+	velDoubleArrayPtr = velArray;
 	return velArray;
 }
 
@@ -118,4 +125,6 @@ void particleSystem::printVelDoubleArray(double* velDoubleArray) {
 
 particleSystem::~particleSystem()
 {
+	//if (particlesPosDoubleArrayCalled) free(posDoubleArrayPtr);
+	//if (particlesVelDoubleArrayCalled) free(velDoubleArrayPtr);
 }
