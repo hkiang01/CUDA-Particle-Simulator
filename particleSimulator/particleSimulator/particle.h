@@ -1,5 +1,5 @@
-#ifndef _particle_h__
-#define __particle_h__
+#ifndef particle_h
+#define particle_h
 
 #include <stdio.h>
 #include <stdlib.h>

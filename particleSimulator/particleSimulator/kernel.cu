@@ -4,9 +4,12 @@
 #include <device_functions.h>
 #include <cuda.h>
 
+#include <iostream>
 #include <stdio.h>
 #include <vector>
+#include "Constants.h"
 #include "particle.h"
+#include "particleSystem.h"
 
 #define cudaCheck(stmt) do {													\
 	cudaError_t err = stmt;														\
@@ -17,15 +20,6 @@
 } while (0);
 
 #define BLOCK_SIZE 256
-
-#define NUM_PARTICLES 2
-#define WORLD_DIM 100
-#define MAX_VEL 5
-#define UNIVERSAL_MASS 55.00
-#define EPOCH .001f
-#define SIMULATION_LENGTH 2
-
-const double GRAVITY = 0.066742;
 
 cudaError_t addWithCuda(int *c, const int *a, const int *b, unsigned int size);
 void gravitySerial(std::vector<particle> particles);
@@ -42,7 +36,7 @@ __global__ void gravKernel(particle* particles, int size, int simul_length) {
 	//todo: kernel where each thread handles/updated a single particle
 	//hard part: make this work across blocks like in mp 5.2 (not sure if this is doable)
 
-	__shared__ float particles_shared[BLOCK_SIZE];
+	//__shared__ float particles_shared[BLOCK_SIZE];
 	//above DOES NOT COMPILE (shared array of objects)
 	//see Dynamic Shared Memory: http://devblogs.nvidia.com/parallelforall/using-shared-memory-cuda-cc/
 	//see response: http://stackoverflow.com/questions/27230621/cuda-shared-memory-inconsistent-results
@@ -58,54 +52,14 @@ __global__ void gravKernel(particle* particles, int size, int simul_length) {
 
 int main()
 {
-	const int arraySize = 5;
-	const int a[arraySize] = { 1, 2, 3, 4, 5 };
-	const int b[arraySize] = { 10, 20, 30, 40, 50 };
-	int c[arraySize] = { 0 };
-
-	// Add vectors in parallel.
-	cudaError_t cudaStatus = addWithCuda(c, a, b, arraySize);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "addWithCuda failed!");
-		return 1;
-	}
-
-	printf("{1,2,3,4,5} + {10,20,30,40,50} = {%d,%d,%d,%d,%d}\n",
-		c[0], c[1], c[2], c[3], c[4]);
 
 	// cudaDeviceReset must be called before exiting in order for profiling and
 	// tracing tools such as Nsight and Visual Profiler to show complete traces.
-	cudaStatus = cudaDeviceReset();
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaDeviceReset failed!");
-		return 1;
-	}
+	cudaCheck(cudaDeviceReset());
 
-	std::vector<particle> particles;
-	int i;
-	for (i = 0; i < NUM_PARTICLES; i++) {
-		particle p = particle();
-		p.setID(i);
-		p.randomPosition(0.0, (float)WORLD_DIM);
-		p.randomVelocity(0.0, (float)MAX_VEL);
-		p.setMass((float)UNIVERSAL_MASS);
-		particles.push_back(p);
-	}
-
-	particle particles_copy[NUM_PARTICLES];
-	i = 0;
-	for (std::vector<particle>::iterator it = particles.begin(); it != particles.end(); ++it) {
-		particles_copy[i] = *it;
-		++i;
-	}
-	printf("initial copy...\n");
-	for (i = 0; i < NUM_PARTICLES; i++) {
-		particles_copy[i].printProps();
-	}
-	printf("\n");
-
-	gravitySerial(particles);
-	gravityWithCuda(particles_copy, NUM_PARTICLES);
+	particleSystem parSys(NUM_PARTICLES);
+	parSys.printParticles();
+	parSys.gravitySerial(SIMULATION_LENGTH);
 
 	system("pause"); //see output of terminal
 	return 0;
@@ -130,6 +84,7 @@ void gravitySerial(std::vector<particle> particles) {
 			}
 			it->updateParticle(EPOCH, force);
 			it->printProps();
+			std::cout << "Distance: " << it->getDistance(*(it++)) << std::endl;
 		}
 		counter++;
 	}

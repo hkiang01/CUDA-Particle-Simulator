@@ -154,11 +154,14 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <CudaCompile Include="kernel.cu" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Constants.h" />
     <ClInclude Include="particle.h" />
+    <ClInclude Include="particleSystem.h" />
     <ClInclude Include="v3.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="particle.cpp" />
+    <ClCompile Include="particleSystem.cpp" />
     <ClCompile Include="v3.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
