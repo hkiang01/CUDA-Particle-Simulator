@@ -18,7 +18,7 @@ __host__ __device__ particle::particle(v3 posvec) {
 	this->setPosition(posvec);
 }
 
-__host__ __device__ particle::particle(v3 posvec, double mass_in) {
+__host__ __device__ particle::particle(v3 posvec, float mass_in) {
 	this->setPosition(posvec);
 	this->setMass(mass_in);
 }
@@ -30,14 +30,14 @@ __host__ __device__ particle::particle(v3 posvec, v3 velvec, v3 accvec) {
 }
 
 __host__ __device__
-void particle::setMass(double mass_in) {
+void particle::setMass(float mass_in) {
 	mass = mass_in;
 }
 
 __host__ __device__
-void particle::randomMass(double minVal, double maxVal) {
+void particle::randomMass(float minVal, float maxVal) {
 	if (maxVal > minVal && minVal > 0.0) {
-		double calculatedMass = minVal + static_cast <double> (rand()) / (static_cast <double> (RAND_MAX / (maxVal - minVal)));
+		float calculatedMass = minVal + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxVal - minVal)));
 		this->setMass(calculatedMass);
 	}
 	else if (minVal < 0.0) {
@@ -49,7 +49,7 @@ void particle::randomMass(double minVal, double maxVal) {
 }
 
 __host__ __device__
-double particle::getMass() {
+float particle::getMass() {
 	return mass;
 }
 
@@ -76,13 +76,13 @@ void particle::setPosition(v3 posvec) {
 }
 
 __host__ __device__
-void particle::randomPosition(double minVal, double maxVal) {
+void particle::randomPosition(float minVal, float maxVal) {
 	if (maxVal > minVal) {
-		double diff = maxVal - minVal;
+		float diff = maxVal - minVal;
 		v3 posvec;
-		posvec.x = minVal + static_cast <double> (rand()) / (static_cast <double> (RAND_MAX / (maxVal - minVal)));
-		posvec.y = minVal + static_cast <double> (rand()) / (static_cast <double> (RAND_MAX / (maxVal - minVal)));
-		posvec.z = minVal + static_cast <double> (rand()) / (static_cast <double> (RAND_MAX / (maxVal - minVal)));
+		posvec.x = minVal + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxVal - minVal)));
+		posvec.y = minVal + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxVal - minVal)));
+		posvec.z = minVal + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxVal - minVal)));
 		this->setPosition(posvec);
 	}
 	else {
@@ -91,11 +91,11 @@ void particle::randomPosition(double minVal, double maxVal) {
 }
 
 __host__ __device__
-double particle::getDistance(particle const& other) {
-	double xarg = this->pos.x - other.pos.x;
-	double yarg = this->pos.y - other.pos.y;
-	double zarg = this->pos.z - other.pos.z;
-	double retval = pow(xarg, 2.0) + pow(yarg, 2.0) + pow(zarg, 2.0);
+float particle::getDistance(particle const& other) {
+	float xarg = this->pos.x - other.pos.x;
+	float yarg = this->pos.y - other.pos.y;
+	float zarg = this->pos.z - other.pos.z;
+	float retval = pow(xarg, 2.0f) + pow(yarg, 2.0f) + pow(zarg, 2.0f);
 	return sqrt(retval);
 }
 
@@ -121,13 +121,13 @@ void particle::setVelocity(v3 velvec) {
 }
 
 __host__ __device__
-void particle::randomVelocity(double minVal, double maxVal) {
+void particle::randomVelocity(float minVal, float maxVal) {
 	if (maxVal > minVal) {
-		double diff = maxVal - minVal;
+		float diff = maxVal - minVal;
 		v3 velvec;
-		velvec.x = minVal + static_cast <double> (rand()) / (static_cast <double> (RAND_MAX / (maxVal - minVal)));
-		velvec.y = minVal + static_cast <double> (rand()) / (static_cast <double> (RAND_MAX / (maxVal - minVal)));
-		velvec.z = minVal + static_cast <double> (rand()) / (static_cast <double> (RAND_MAX / (maxVal - minVal)));
+		velvec.x = minVal + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxVal - minVal)));
+		velvec.y = minVal + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxVal - minVal)));
+		velvec.z = minVal + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxVal - minVal)));
 		this->setVelocity(velvec);
 	}
 	else {
@@ -148,13 +148,13 @@ void particle::setAcceleration(v3 accvec) {
 }
 
 __host__ __device__
-void particle::randomAcceleration(double minVal, double maxVal) {
+void particle::randomAcceleration(float minVal, float maxVal) {
 	if (maxVal > minVal) {
-		double diff = maxVal - minVal;
+		float diff = maxVal - minVal;
 		v3 accvec;
-		accvec.x = minVal + static_cast <double> (rand()) / (static_cast <double> (RAND_MAX / (maxVal - minVal)));
-		accvec.y = minVal + static_cast <double> (rand()) / (static_cast <double> (RAND_MAX / (maxVal - minVal)));
-		accvec.z = minVal + static_cast <double> (rand()) / (static_cast <double> (RAND_MAX / (maxVal - minVal)));
+		accvec.x = minVal + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxVal - minVal)));
+		accvec.y = minVal + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxVal - minVal)));
+		accvec.z = minVal + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxVal - minVal)));
 		this->setAcceleration(accvec);
 	}
 	else {
@@ -163,7 +163,7 @@ void particle::randomAcceleration(double minVal, double maxVal) {
 }
 
 __host__ __device__
-void particle::updateParticle(double dt) {
+void particle::updateParticle(float dt) {
 	pos.x = pos.x + vel.x * dt;
 	pos.y = pos.y + vel.y * dt;
 	pos.z = pos.z + vel.z * dt;
@@ -173,7 +173,7 @@ void particle::updateParticle(double dt) {
 }
 
 __host__ __device__
-void particle::updateParticle(double dt, v3 accvec) {
+void particle::updateParticle(float dt, v3 accvec) {
 	pos.x = pos.x + vel.x * dt;
 	pos.y = pos.y + vel.y * dt;
 	pos.z = pos.z + vel.z * dt;
@@ -191,7 +191,7 @@ void particle::applyForce(v3 forcevec) {
 
 __host__ __device__
 void particle::printProps() {
-	printf("id: %d\tpos: (%lf, %lf, %lf)\tvel: (%lf, %lf, %lf)\tacc:(%lf, %lf, %lf)\n", id, pos.x, pos.y, pos.z, vel.x, vel.y, vel.z, acc.x, acc.y, acc.z);
+	printf("id: %d\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", id, pos.x, pos.y, pos.z, vel.x, vel.y, vel.z, acc.x, acc.y, acc.z);
 }
 
 __host__ __device__

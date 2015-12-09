@@ -59,12 +59,12 @@ int main()
 	particleSystem parSys(NUM_PARTICLES);
 	//parSys.printParticles();
 	//parSys.gravitySerial(SIMULATION_LENGTH);
-	double* pos = parSys.particlesPosDoubleArray();
-	double* vel = parSys.particlesVelDoubleArray();
-	double* acc = parSys.particlesAccDoubleArray();
+	float* pos = parSys.particlesPosfloatArray();
+	float* vel = parSys.particlesVelfloatArray();
+	float* acc = parSys.particlesAccfloatArray();
 	std::cout << std::endl;
-	//parSys.printPosDoubleArray(pos);
-	//parSys.printVelDoubleArray(vel);
+	//parSys.printPosfloatArray(pos);
+	//parSys.printVelfloatArray(vel);
 	parSys.gravityBoth(pos, vel, acc, SIMULATION_LENGTH);
 
 	system("pause"); //see output of terminal

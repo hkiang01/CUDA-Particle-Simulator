@@ -23,26 +23,26 @@ public:
 	particleSystem(unsigned int numParticles);
 	~particleSystem();
 	void printParticles();
-	void printParticlcesArrays(double* p, double* v, double* a);
+	void printParticlcesArrays(float* p, float* v, float* a);
 	std::vector<particle> particleSystem::getParticlesVector();
-	double* particlesPosDoubleArray();
-	double* particlesVelDoubleArray();
-	double* particlesAccDoubleArray();
-	void printPosDoubleArray(double* posDoubleArray);
-	void printVelDoubleArray(double* velDoubleArray);
-	void printAccDoubleArray(double* accDoubleArray);
+	float* particlesPosfloatArray();
+	float* particlesVelfloatArray();
+	float* particlesAccfloatArray();
+	void printPosFloatArray(float* posFloatArray);
+	void printVelFloatArray(float* velFloatArray);
+	void printAccFloatArray(float* accFloatArray);
 	void gravitySerial(unsigned int simulationLength);
-	void gravityParallel(double* positions, double* velocities, double* accelerations, unsigned int simulationLength);
-	double3 gravityParallelKernel(double3 curPos, double* positions, unsigned int simulationLength);
-	void gravityBoth(double* positions, double* velocities, double* accelerations, unsigned int numRounds);
+	void gravityParallel(float* positions, float* velocities, float* accelerations, unsigned int simulationLength);
+	float3 gravityParallelKernel(float3 curPos, float* positions, unsigned int simulationLength);
+	void gravityBoth(float* positions, float* velocities, float* accelerations, unsigned int numRounds);
 
 	std::vector<particle> particles;
-	double* posDoubleArrayPtr;
-	double* velDoubleArrayPtr;
-	double* accDoubleArrayPtr;
-	bool particlesPosDoubleArrayCalled;
-	bool particlesVelDoubleArrayCalled;
-	bool particlesAccDoubleArrayCalled;
+	float* posFloatArrayPtr;
+	float* velFloatArrayPtr;
+	float* accFloatArrayPtr;
+	bool particlesPosFloatArrayCalled;
+	bool particlesVelFloatArrayCalled;
+	bool particlesAccFloatArrayCalled;
 };
 
 #endif
