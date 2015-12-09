@@ -71,9 +71,9 @@ void gravityParallelKernel(float* positions, float* velocities, float* accelerat
 				float yadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.y / (dist * dist * dist);
 				float zadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.z / (dist * dist * dist);
 				printf("(xadd, yadd, zadd) (%u,%u); (%f,%f,%f)\n", id, i, xadd, yadd, zadd);
-				atomicAdd(&(force.x), xadd);
-				atomicAdd(&(force.y), yadd);
-				atomicAdd(&(force.z), zadd);
+				atomicAdd(&(force.x), xadd/UNIVERSAL_MASS);
+				atomicAdd(&(force.y), yadd/UNIVERSAL_MASS);
+				atomicAdd(&(force.z), zadd/UNIVERSAL_MASS);
 			}
 			//update phase
 			particles_shared[id].x += velocities_shared[id].x * EPOCH; //EPOCH is dt
