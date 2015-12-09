@@ -7,12 +7,6 @@
 #include <vector>
 #include <stdlib.h>
 
-
-#include "cuda_runtime.h"
-#include "device_launch_parameters.h"
-#include <device_functions.h>
-#include <cuda.h>
-
 #include "Constants.h"
 #include "particle.h"
 
