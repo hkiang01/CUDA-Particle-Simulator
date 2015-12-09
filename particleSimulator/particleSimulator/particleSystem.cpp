@@ -2,8 +2,9 @@
 
 particleSystem::particleSystem()
 {
-	particlesPosDoubleArrayCalled = false;
-	particlesVelDoubleArrayCalled = false;
+	particlesPosFloatArrayCalled = false;
+	particlesVelFloatArrayCalled = false;
+	particlesAccFloatArrayCalled = false;
 }
 
 particleSystem::particleSystem(unsigned int numParticles)
@@ -11,9 +12,11 @@ particleSystem::particleSystem(unsigned int numParticles)
 	unsigned int i;
 	for (i = 0; i < numParticles; i++) {
 		particle p = particle();
+		p.setID(i);
 		p.randomPosition(0.0, (float)WORLD_DIM);
 		p.randomVelocity(0.0, (float)MAX_VEL);
 		p.setMass((float)UNIVERSAL_MASS);
+		p.randomAcceleration(0.0, (float)MAX_ACC);
 		this->particles.push_back(p);
 	}
 }
@@ -24,11 +27,25 @@ void particleSystem::printParticles() {
 	}
 }
 
+void particleSystem::printParticlcesArrays(float* p, float* v, float* a) {
+	unsigned int i;
+	for (i = 0; i < NUM_PARTICLES * 3; i += 3) {
+		printf("id: %d\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", i/3, p[i], p[i + 1], p[i + 2], v[i], v[i + 1], v[i + 2], a[i], a[i + 1], a[i + 2]);
+	}
+}
+
 std::vector<particle> particleSystem::getParticlesVector() {
 	return particles;
 }
 
 void particleSystem::gravitySerial(unsigned int simulationLength) {
+
+	if (SERIAL_DEBUG){
+		for (std::vector<particle>::iterator it = particles.begin(); it != particles.end(); ++it) {
+			std::cout << "import - ";
+			it->printProps();
+		}
+	}
 	unsigned int counter = 0;
 	while (counter < simulationLength) {
 		for (std::vector<particle>::iterator it = particles.begin(); it != particles.end(); ++it) {
@@ -37,94 +54,111 @@ void particleSystem::gravitySerial(unsigned int simulationLength) {
 				if (it != itt) {
 					// force on i (it) by j (itt)
 					v3 currRay = it->getRay(*itt);
-					double dist = it->getDistance(*itt);
-					double mi = it->getMass();
-					double mj = itt->getMass();
-					force.x += (double)GRAVITY * (double)mj * (double)currRay.x / (double)pow(dist, 3.0);
-					force.y += (double)GRAVITY * (double)mj * (double)currRay.y / (double)pow(dist, 3.0);
-					force.z += (double)GRAVITY * (double)mj * (double)currRay.z / (double)pow(dist, 3.0);
+					if (SERIAL_DEBUG){ std::cout << "ray (" << it->id << "," << itt->id << "): (" << currRay.x << "," << currRay.y << "," << currRay.z << ")" << std::endl; }
+					float dist = it->getDistance(*itt);
+					if (SERIAL_DEBUG){ std::cout << "distance (" << it->id << "," << itt->id << "): " << dist << std::endl; }
+					float mi = it->getMass();
+					float mj = itt->getMass();
+					float xadd =(float)GRAVITY * (float)mj * (float)currRay.x / (float)pow(dist, 3.0);
+					float yadd = (float)GRAVITY * (float)mj * (float)currRay.y / (float)pow(dist, 3.0);
+					float zadd = (float)GRAVITY * (float)mj * (float)currRay.z / (float)pow(dist, 3.0);
+					if (SERIAL_DEBUG){ std::cout << "(xadd,yadd,zadd) (" << it->id << "," << itt->id << "): " << xadd << "," << yadd << "," << zadd << ")" << std::endl; }
+					force.x += xadd/float(mi); // F=ma --> a=F/m
+					force.y += yadd/float(mi);
+					force.z += zadd/float(mi);
 				}
 			}
 			it->updateParticle(EPOCH, force);
-			it->printProps();
-			std::cout << "Distance from 0 to 1: " << it->getDistance(*(it++)) << std::endl;
+			if (SERIAL_UPDATE_OUTPUT) {
+				std::cout << "update (" << it->id << "): ";
+				it->printProps();
+			}
+			//std::cout << "Distance from 0 to 1: " << it->getDistance(*(it++)) << std::endl;
 		}
 		counter++;
 	}
 }
 
-double* particleSystem::particlesPosDoubleArray() {
-	particlesPosDoubleArrayCalled = true;
-	double* posArray = (double*)std::malloc(sizeof(double) * NUM_PARTICLES * 3); //x,y,z
-	double* curParticle = posArray;
-	unsigned int counter = 0;
+
+float* particleSystem::particlesPosfloatArray() {
+	particlesPosFloatArrayCalled = true; //for destructor
+	float* posArray = new float[NUM_PARTICLES * 3];
+	unsigned int i = 0;
 	for (std::vector<particle>::iterator it = particles.begin(); it != particles.end(); ++it) {
-		*curParticle = it->getPosition().x;
-		curParticle += sizeof(double);
-		*curParticle = it->getPosition().y;
-		curParticle += sizeof(double);
-		*curParticle = it->getPosition().z;
-		if (counter < NUM_PARTICLES - 1) curParticle += sizeof(double);
-		counter++;
+		posArray[i] = it->getPosition().x;
+		posArray[i + 1] = it->getPosition().y;
+		posArray[i + 2] = it->getPosition().z;
+		i += 3;
 	}
-	posDoubleArrayPtr = posArray;
+	posFloatArrayPtr = posArray; //for destructor
 	return posArray;
 }
 
-double* particleSystem::particlesVelDoubleArray() {
-	particlesVelDoubleArrayCalled = true;
-	double* velArray = (double*)std::malloc(sizeof(double) * NUM_PARTICLES * 3); //x,y,z
-	double* curParticle = velArray;
-	unsigned int counter = 0;
+float* particleSystem::particlesVelfloatArray() {
+	particlesVelFloatArrayCalled = true; //for destructor
+	float* velArray = new float[NUM_PARTICLES * 3];
+	unsigned int i = 0;
 	for (std::vector<particle>::iterator it = particles.begin(); it != particles.end(); ++it) {
-		*curParticle = it->getVelocity().x;
-		curParticle += sizeof(double);
-		*curParticle = it->getVelocity().y;
-		curParticle += sizeof(double);
-		*curParticle = it->getVelocity().z;
-		if (counter < NUM_PARTICLES - 1) curParticle += sizeof(double);
-		counter++;
+		velArray[i] = it->getVelocity().x;
+		velArray[i + 1] = it->getVelocity().y;
+		velArray[i + 2] = it->getVelocity().z;
+		i += 3;
 	}
-	velDoubleArrayPtr = velArray;
+	velFloatArrayPtr = velArray; //for destructor
 	return velArray;
 }
 
-void particleSystem::printPosDoubleArray(double* posDoubleArray) {
-	double x, y, z;
-	unsigned int i;
-	//shouldn't change the pointer position when control is handed back to caller
-	double* origPosition = posDoubleArray;
-	for (i = 0; i < NUM_PARTICLES; i++) {
-		x = *posDoubleArray;
-		posDoubleArray += sizeof(double);
-		y = *posDoubleArray;
-		posDoubleArray += sizeof(double);
-		z = *posDoubleArray;
-		posDoubleArray += sizeof(double);
-		printf("id: %d\tpos: (%lf, %lf, %lf)\n", i, x, y, z);
+
+float* particleSystem::particlesAccfloatArray() {
+	particlesAccFloatArrayCalled = true; //for destructor
+	float* accArray = new float[NUM_PARTICLES * 3];
+	unsigned int i = 0;
+	for (std::vector<particle>::iterator it = particles.begin(); it != particles.end(); ++it) {
+		accArray[i] = it->getAcceleration().x;
+		accArray[i + 1] = it->getAcceleration().y;
+		accArray[i + 2] = it->getAcceleration().z;
+		i += 3;
 	}
-	posDoubleArray = origPosition;
+	accFloatArrayPtr = accArray; //for destructor
+	return accArray;
 }
 
-void particleSystem::printVelDoubleArray(double* velDoubleArray) {
-	double x, y, z;
+void particleSystem::printPosFloatArray(float* posFloatArray) {
+	float x, y, z;
 	unsigned int i;
-	//shouldn't change the pointer position when control is handed back to caller
-	double* origPosition = velDoubleArray;
-	for (i = 0; i < NUM_PARTICLES; i++) {
-		x = *velDoubleArray;
-		velDoubleArray += sizeof(double);
-		y = *velDoubleArray;
-		velDoubleArray += sizeof(double);
-		z = *velDoubleArray;
-		velDoubleArray += sizeof(double);
-		printf("id: %d\tvel: (%lf, %lf, %lf)\n", i, x, y, z);
+	for (i = 0; i < NUM_PARTICLES * 3; i+=3) {
+		x = posFloatArray[i];
+		y = posFloatArray[i + 1];
+		z = posFloatArray[i + 2];
+		printf("id: %d\tpos: (%f, %f, %f)\n", i/3, x, y, z);
 	}
-	velDoubleArray = origPosition;
+}
+
+void particleSystem::printVelFloatArray(float* velFloatArray) {
+	float x, y, z;
+	unsigned int i;
+	for (i = 0; i < NUM_PARTICLES * 3; i += 3) {
+		x = velFloatArray[i];
+		y = velFloatArray[i + 1];
+		z = velFloatArray[i + 2];
+		printf("id: %d\tvel: (%f, %f, %f)\n", i / 3, x, y, z);
+	}
+}
+
+void particleSystem::printAccFloatArray(float* accFloatArray) {
+	float x, y, z;
+	unsigned int i;
+	for (i = 0; i < NUM_PARTICLES * 3; i += 3) {
+		x = accFloatArray[i];
+		y = accFloatArray[i + 1];
+		z = accFloatArray[i + 2];
+		printf("id: %d\tacc: (%f, %f, %f)\n", i / 3, x, y, z);
+	}
 }
 
 particleSystem::~particleSystem()
 {
-	//if (particlesPosDoubleArrayCalled) free(posDoubleArrayPtr);
-	//if (particlesVelDoubleArrayCalled) free(velDoubleArrayPtr);
+	//if (particlesPosfloatArrayCalled) free(posfloatArrayPtr);
+	//if (particlesVelfloatArrayCalled) free(velfloatArrayPtr);
+	//if (particlesAccfloatArrayCalled) free(accfloatArrayPtr);
 }

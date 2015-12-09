@@ -1,8 +1,9 @@
 
-#include "cuda_runtime.h"
-#include "device_launch_parameters.h"
-#include <device_functions.h>
 #include <cuda.h>
+#include <cuda_runtime.h>
+#include <device_functions.h>
+#include <device_atomic_functions.h>
+#include <device_launch_parameters.h>
 
 #include <iostream>
 #include <stdio.h>
@@ -14,40 +15,164 @@
 #define cudaCheck(stmt) do {													\
 	cudaError_t err = stmt;														\
 	if (err != cudaSuccess) {													\
-		fprintf(stderr, "Failed to run stmt ", #stmt);							\
-		fprintf(stderr, "Got CUDA error ... %s\n", cudaGetErrorString(err));	\
+		/*fprintf(stderr, "Failed to run stmt ", #stmt); */							\
+		/*fprintf(stderr, "Got CUDA error ... %s\n", cudaGetErrorString(err)); */	\
 	}																			\
 } while (0);
 
-#define BLOCK_SIZE 256
+__constant__ float GRAVITY_CUDA = 0.066742f;
 
-cudaError_t addWithCuda(int *c, const int *a, const int *b, unsigned int size);
-void gravitySerial(std::vector<particle> particles);
-void gravityWithCuda(particle* particles, int size);
+//calculate forces and resultant acceleration for a SINGLE particle due to physics interactions with ALL particles in system
+//also updates positions and velocities
+__global__
+void gravityParallelKernel(float* positions, float* velocities, float* accelerations, unsigned int simulationLength) {
 
-__global__ void addKernel(int *c, const int *a, const int *b)
-{
-	int i = threadIdx.x;
-	c[i] = a[i] + b[i];
+	//strategy: one thread (id) per particle
+
+	__shared__ float3 particles_shared[BLOCK_SIZE];
+	__shared__ float3 velocities_shared[BLOCK_SIZE];
+	__shared__ float3 accelerations_shared[BLOCK_SIZE];
+
+
+	unsigned int id = threadIdx.x + blockIdx.x * blockDim.x;
+	if (id >= NUM_PARTICLES) return;
+
+	//LOAD PHASE via float3 conversion
+	float3 pos, vel, acc;
+	pos.x = positions[3 * id];
+	pos.y = positions[3 * id + 1];
+	pos.z = positions[3 * id + 2];
+	particles_shared[threadIdx.x] = pos;
+	vel.x = velocities[3 * id];
+	vel.y = velocities[3 * id + 1];
+	vel.z = velocities[3 * id + 2];
+	velocities_shared[threadIdx.x] = vel;
+	acc.x = accelerations[3 * id];
+	acc.y = accelerations[3 * id + 1];
+	acc.z = accelerations[3 * id + 2];
+	accelerations_shared[threadIdx.x] = acc;
+	
+	if (PARALLEL_DEBUG) {
+		printf("import - id: %d\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", id, pos.x, pos.y, pos.z, vel.x, vel.y, vel.z, acc.x, acc.y, acc.z);
+	}
+	__syncthreads();
+
+	//CALCULATION PHASE
+	float3 curr = pos; //current position for given iteration
+	for (unsigned int simCount = 0; simCount < simulationLength; simCount++) {
+		//acc calculation phase
+		float3 force = { 0.0f, 0.0f, 0.0 };
+		for (unsigned i = 0; i < BLOCK_SIZE && i < NUM_PARTICLES; i++) { //all (other) particles
+			float3 other = particles_shared[i];
+			if (id != i) /*(curr.x != other.x || curr.y != other.y || curr.z != other.z)*/ { //don't affect own particle
+				float3 ray = { curr.x - other.x, curr.y - other.y, curr.z - other.z };
+				if (PARALLEL_DEBUG) {
+					printf("ray (%u,%u); (%f,%f,%f)\n", id, i, ray.x, ray.y, ray.z);
+				}
+				float dist = (curr.x - other.x)*(curr.x - other.x) + (curr.y - other.y)*(curr.y - other.y) + (curr.z - other.z)*(curr.z - other.z);
+				dist = sqrt(dist);
+				if (PARALLEL_DEBUG) {
+					printf("distance (%u,%u); %f\n", id, i, dist);
+				}
+				float xadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.x / (dist * dist * dist);
+				float yadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.y / (dist * dist * dist);
+				float zadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.z / (dist * dist * dist);
+				if (PARALLEL_DEBUG) {
+					printf("(xadd, yadd, zadd) (%u,%u); (%f,%f,%f)\n", id, i, xadd, yadd, zadd);
+				}
+				
+				force.x += xadd / UNIVERSAL_MASS;
+				force.y += yadd / UNIVERSAL_MASS;
+				force.z += zadd / UNIVERSAL_MASS;
+				
+				/*atomicAdd(&(force.x), xadd / UNIVERSAL_MASS);
+				atomicAdd(&(force.y), yadd / UNIVERSAL_MASS);
+				atomicAdd(&(force.z), zadd / UNIVERSAL_MASS);*/
+
+				//update phase
+				particles_shared[id].x += velocities_shared[id].x * EPOCH; //EPOCH is dt
+				particles_shared[id].y += velocities_shared[id].y * EPOCH;
+				particles_shared[id].z += velocities_shared[id].z * EPOCH;
+				curr = particles_shared[id]; //for next iteration (update current position)
+
+				velocities_shared[id].x += accelerations_shared[id].x * EPOCH; //EPOCH is dt
+				velocities_shared[id].y += accelerations_shared[id].y * EPOCH;
+				velocities_shared[id].z += accelerations_shared[id].z * EPOCH;
+
+				accelerations_shared[id].x = force.x; //EPOCH is dt
+				accelerations_shared[id].y = force.y;
+				accelerations_shared[id].z = force.z;
+
+				if (PARALLEL_UPDATE_OUTPUT) {
+					printf("update (%d)\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", id, particles_shared[id].x, particles_shared[id].y, particles_shared[id].z,
+						velocities_shared[id].x, velocities_shared[id].y, velocities_shared[id].z,
+						accelerations_shared[id].x, accelerations_shared[id].y, accelerations_shared[id].z);
+				}
+			}
+		}
+		__syncthreads();
+	}
+
+	//OUTPUT PHASE via float conversion
+	positions[3 * id] = particles_shared[id].x;
+	positions[3 * id + 1] = particles_shared[id].y;
+	positions[3 * id + 2] = particles_shared[id].z;
+	velocities[3 * id] = velocities_shared[id].x;
+	velocities[3 * id + 1] = velocities_shared[id].y;
+	velocities[3 * id + 2] = velocities_shared[id].z;
+	accelerations[3 * id] = accelerations_shared[id].x;
+	accelerations[3 * id + 1] = accelerations_shared[id].y;
+	accelerations[3 * id + 2] = accelerations_shared[id].z;
 }
 
-__global__ void gravKernel(particle* particles, int size, int simul_length) {
+void gravityParallel(float* hostPositions, float* hostVelocities, float* hostAccelerations, unsigned int simulationLength) {
+	//CUDA prep code
+	float* devicePositions;
+	float* deviceVelocities;
+	float* deviceAccelerations;
+	size_t size = NUM_PARTICLES * 3 * sizeof(float);
+
+	cudaCheck(cudaSetDevice(0)); //choose GPU
+	cudaCheck(cudaMalloc((void **)&devicePositions, size));
+	cudaCheck(cudaMalloc((void **)&deviceVelocities, size));
+	cudaCheck(cudaMalloc((void **)&deviceAccelerations, size));
+	cudaCheck(cudaMemcpy(devicePositions, hostPositions, size, cudaMemcpyHostToDevice));
+	cudaCheck(cudaMemcpy(deviceVelocities, hostVelocities, size, cudaMemcpyHostToDevice));
+	cudaCheck(cudaMemcpy(deviceAccelerations, hostAccelerations, size, cudaMemcpyHostToDevice));
+	dim3 dimGrid, dimBlock;
+	dimGrid.x = (size - 1) / BLOCK_SIZE + 1;
+	dimBlock.x = BLOCK_SIZE;
+	gravityParallelKernel <<<dimGrid, dimBlock >>>(devicePositions, deviceVelocities, deviceAccelerations, simulationLength);
+	cudaCheck(cudaDeviceSynchronize());
+	cudaCheck(cudaMemcpy(hostPositions, devicePositions, size, cudaMemcpyDeviceToHost));
+	cudaCheck(cudaMemcpy(hostVelocities, deviceVelocities, size, cudaMemcpyDeviceToHost));
+	cudaCheck(cudaMemcpy(hostAccelerations, deviceAccelerations, size, cudaMemcpyDeviceToHost));
+	cudaCheck(cudaFree(devicePositions));
+	cudaCheck(cudaFree(deviceVelocities));
+	cudaCheck(cudaFree(deviceAccelerations));
 	
-	//todo: kernel where each thread handles/updated a single particle
-	//hard part: make this work across blocks like in mp 5.2 (not sure if this is doable)
+	return;
+}
 
-	//__shared__ float particles_shared[BLOCK_SIZE];
-	//above DOES NOT COMPILE (shared array of objects)
-	//see Dynamic Shared Memory: http://devblogs.nvidia.com/parallelforall/using-shared-memory-cuda-cc/
-	//see response: http://stackoverflow.com/questions/27230621/cuda-shared-memory-inconsistent-results
+//print particles after a single round of serial and parallel to compare output and check correctness
+void particleSystem::gravityBoth(float* positions, float* velocities, float* accelerations, unsigned int numRounds) {
+	unsigned int round;
+	for (round = 0; round < numRounds; round++) {
+		
+		//SERIAL PORTION
+		std::cout << "Serial round " << round << std::endl;
+		this->gravitySerial(1); //execution phase
+		//this->printParticles(); //print phase
+		std::cout << std::endl;
 
-	int i = threadIdx.x + blockDim.x * blockIdx.x;
-	if (i < size) {
-		//load phase
-		//particles_shared[threadIdx.x] = particles[i];
-		__syncthreads();
-
+		//PARALLEL PORTION
+		std::cout << "Parallel round " << round << std::endl;
+		gravityParallel(positions, velocities, accelerations, 1); //execution phase
+		//printParticlcesArrays(positions, velocities, accelerations); //print phase
+		std::cout << std::endl;
 	}
+
+	//CUDA cleanup code
 }
 
 int main()
@@ -56,141 +181,22 @@ int main()
 	// cudaDeviceReset must be called before exiting in order for profiling and
 	// tracing tools such as Nsight and Visual Profiler to show complete traces.
 	cudaCheck(cudaDeviceReset());
-
+	std::cout << "Initizing Particle System..." << std::endl;
 	particleSystem parSys(NUM_PARTICLES);
 	parSys.printParticles();
-	double* pos = parSys.particlesPosDoubleArray();
-	double* vel = parSys.particlesVelDoubleArray();
-	parSys.printPosDoubleArray(pos);
-	parSys.printVelDoubleArray(vel);
 	//parSys.gravitySerial(SIMULATION_LENGTH);
+	float* pos = parSys.particlesPosfloatArray();
+	float* vel = parSys.particlesVelfloatArray();
+	float* acc = parSys.particlesAccfloatArray();
+	std::cout << std::endl;
+	//parSys.printPosFloatArray(pos);
+	//parSys.printVelFloatArray(vel);
+	//parSys.printAccFloatArray(acc);
+	parSys.gravityBoth(pos, vel, acc, SIMULATION_LENGTH);
 
+	//parSys.gravitySerial(SIMULATION_LENGTH);
+	//gravityParallel(pos, vel, acc, SIMULATION_LENGTH);
 
 	system("pause"); //see output of terminal
 	return 0;
-}
-
-void gravitySerial(std::vector<particle> particles) {
-	int counter = 0;
-	while (counter < SIMULATION_LENGTH) {
-		for (std::vector<particle>::iterator it = particles.begin(); it != particles.end(); ++it) {
-			v3 force = v3(0.0, 0.0, 0.0);
-			for (std::vector<particle>::iterator itt = particles.begin(); itt != particles.end(); ++itt) {
-				if (it != itt) {
-					// force on i (it) by j (itt)
-					v3 currRay = it->getRay(*itt);
-					double dist = it->getDistance(*itt);
-					double mi = it->getMass();
-					double mj = itt->getMass();
-					force.x += (double)GRAVITY * (double)mj * (double)currRay.x / (double)pow(dist, 3.0);
-					force.y += (double)GRAVITY * (double)mj * (double)currRay.y / (double)pow(dist, 3.0);
-					force.z += (double)GRAVITY * (double)mj * (double)currRay.z / (double)pow(dist, 3.0);
-				}
-			}
-			it->updateParticle(EPOCH, force);
-			it->printProps();
-			std::cout << "Distance: " << it->getDistance(*(it++)) << std::endl;
-		}
-		counter++;
-	}
-}
-
-void gravityWithCuda(particle *particles, int size) {
-	particle *particles_device;
-
-	cudaCheck(cudaSetDevice(0)); //choose which GPU to run on
-	cudaCheck(cudaMalloc((void **)&particles_device, size * sizeof(particle)));
-	cudaCheck(cudaMemcpy(particles_device, particles, size * sizeof(particle), cudaMemcpyHostToDevice));
-
-	dim3 dimGrid;
-	dim3 dimBlock;
-	dimGrid.x = (size - 1) / BLOCK_SIZE + 1;
-	dimBlock.x = BLOCK_SIZE;
-
-	gravKernel<<<dimGrid,dimBlock,dimBlock.x*sizeof(particle)>>>(particles_device, size, SIMULATION_LENGTH);
-
-	cudaCheck(cudaDeviceSynchronize());
-	cudaCheck(cudaMemcpy(particles, particles_device, size * sizeof(particle), cudaMemcpyDeviceToHost));
-	cudaCheck(cudaFree(particles_device));
-	return;
-}
-
-// Helper function for using CUDA to add vectors in parallel.
-cudaError_t addWithCuda(int *c, const int *a, const int *b, unsigned int size)
-{
-	int *dev_a = 0;
-	int *dev_b = 0;
-	int *dev_c = 0;
-	cudaError_t cudaStatus;
-
-	// Choose which GPU to run on, change this on a multi-GPU system.
-	cudaStatus = cudaSetDevice(0);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
-		goto Error;
-	}
-
-	// Allocate GPU buffers for three vectors (two input, one output)    .
-	cudaStatus = cudaMalloc((void**)&dev_c, size * sizeof(int));
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaMalloc failed!");
-		goto Error;
-	}
-
-	cudaStatus = cudaMalloc((void**)&dev_a, size * sizeof(int));
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaMalloc failed!");
-		goto Error;
-	}
-
-	cudaStatus = cudaMalloc((void**)&dev_b, size * sizeof(int));
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaMalloc failed!");
-		goto Error;
-	}
-
-	// Copy input vectors from host memory to GPU buffers.
-	cudaStatus = cudaMemcpy(dev_a, a, size * sizeof(int), cudaMemcpyHostToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaMemcpy failed!");
-		goto Error;
-	}
-
-	cudaStatus = cudaMemcpy(dev_b, b, size * sizeof(int), cudaMemcpyHostToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaMemcpy failed!");
-		goto Error;
-	}
-
-	// Launch a kernel on the GPU with one thread for each element.
-	addKernel << <1, size >> >(dev_c, dev_a, dev_b);
-
-	// Check for any errors launching the kernel
-	cudaStatus = cudaGetLastError();
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "addKernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
-		goto Error;
-	}
-
-	// cudaDeviceSynchronize waits for the kernel to finish, and returns
-	// any errors encountered during the launch.
-	cudaStatus = cudaDeviceSynchronize();
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching addKernel!\n", cudaStatus);
-		goto Error;
-	}
-
-	// Copy output vector from GPU buffer to host memory.
-	cudaStatus = cudaMemcpy(c, dev_c, size * sizeof(int), cudaMemcpyDeviceToHost);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaMemcpy failed!");
-		goto Error;
-	}
-
-Error:
-	cudaFree(dev_c);
-	cudaFree(dev_a);
-	cudaFree(dev_b);
-
-	return cudaStatus;
 }

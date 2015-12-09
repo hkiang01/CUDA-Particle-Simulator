@@ -2,9 +2,9 @@
 
 void v3::randomize()
 {
-	x = (double)rand() / (double)RAND_MAX;
-	y = (double)rand() / (double)RAND_MAX;
-	z = (double)rand() / (double)RAND_MAX;
+	x = (float)rand() / (float)RAND_MAX;
+	y = (float)rand() / (float)RAND_MAX;
+	z = (float)rand() / (float)RAND_MAX;
 }
 
 v3::v3()
@@ -12,7 +12,7 @@ v3::v3()
 	randomize();
 }
 
-v3::v3(double xIn, double yIn, double zIn) {
+v3::v3(float xIn, float yIn, float zIn) {
 	x = xIn;
 	y = yIn;
 	z = zIn;

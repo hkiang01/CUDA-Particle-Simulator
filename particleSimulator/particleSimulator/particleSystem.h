@@ -6,8 +6,9 @@
 #include <iostream>
 #include <vector>
 #include <stdlib.h>
-#include "Constants.h"
+
 #include "particle.h"
+#include "Constants.h"
 
 class particleSystem
 {
@@ -16,18 +17,24 @@ public:
 	particleSystem(unsigned int numParticles);
 	~particleSystem();
 	void printParticles();
+	void printParticlcesArrays(float* p, float* v, float* a);
 	std::vector<particle> particleSystem::getParticlesVector();
+	float* particlesPosfloatArray();
+	float* particlesVelfloatArray();
+	float* particlesAccfloatArray();
+	void printPosFloatArray(float* posFloatArray);
+	void printVelFloatArray(float* velFloatArray);
+	void printAccFloatArray(float* accFloatArray);
 	void gravitySerial(unsigned int simulationLength);
-	double* particlesPosDoubleArray();
-	double* particlesVelDoubleArray();
-	void printPosDoubleArray(double* posFloatArray);
-	void printVelDoubleArray(double* velFloatArray);
+	void gravityBoth(float* positions, float* velocities, float* accelerations, unsigned int numRounds);
 
 	std::vector<particle> particles;
-	double* posDoubleArrayPtr;
-	double* velDoubleArrayPtr;
-	bool particlesPosDoubleArrayCalled;
-	bool particlesVelDoubleArrayCalled;
+	float* posFloatArrayPtr;
+	float* velFloatArrayPtr;
+	float* accFloatArrayPtr;
+	bool particlesPosFloatArrayCalled;
+	bool particlesVelFloatArrayCalled;
+	bool particlesAccFloatArrayCalled;
 };
 
 #endif

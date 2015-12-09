@@ -9,12 +9,12 @@ class v3
 {
 public:
 
-	double x;
-	double y;
-	double z;
+	float x;
+	float y;
+	float z;
 
 	v3();
-	v3(double xIn, double yIn, double zIn);
+	v3(float xIn, float yIn, float zIn);
 	void randomize();
 	~v3();
 };
