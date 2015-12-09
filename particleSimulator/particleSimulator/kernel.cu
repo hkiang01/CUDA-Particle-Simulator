@@ -20,9 +20,9 @@
 	}																			\
 } while (0);
 
-//calculate forces and resultant acceleration for a SINGLE particle
-__global__
-void gravityParallelKernel(float3 curr, float* positions, unsigned int simulationLength, float3 &accel) {
+//calculate forces and resultant acceleration for a SINGLE particle due to physics interactions with ALL particles in system
+__device__
+void gravityParallelAccelKernel(float3 curr, float* positions, unsigned int simulationLength, float3 &accel) {
 
 	//strategy: one thread per particle
 
@@ -58,7 +58,7 @@ void gravityParallelKernel(float3 curr, float* positions, unsigned int simulatio
 }
 
 __global__
-void gravityParallel(float* position, float* velocity, float* acceleration, unsigned int simulationLength) {
+void gravityParallelBaseKernel(float* position, float* velocity, float* acceleration, unsigned int simulationLength) {
 
 	//strategy: one thread per particle
 
@@ -73,37 +73,74 @@ void gravityParallel(float* position, float* velocity, float* acceleration, unsi
 	curPos.y = position[3 * i + 1];
 	curPos.z = position[3 * i + 2];
 	float3 accel;
-	gravityParallelKernel(curPos, position, simulationLength, accel); //accel passed by reference
 
-	__syncthreads();
+	unsigned int simulCount;
+	for (simulCount = 0; simulCount < simulationLength; simulCount++) {
+		gravityParallelAccelKernel(curPos, position, simulationLength, accel); //accel passed by reference
+		cudaCheck(cudaDeviceSynchronize());
+		__syncthreads(); //all threads (particles) finish calculating acceleration based on physics relative to ALL other particles in system
 
-	position[i] += velocity[i] * EPOCH; //EPOCH is dt
-	position[i + 1] += velocity[i + 1] * EPOCH;
-	position[i + 2] += velocity[i + 2] * EPOCH;
+		position[i] += velocity[i] * EPOCH; //EPOCH is dt
+		position[i + 1] += velocity[i + 1] * EPOCH;
+		position[i + 2] += velocity[i + 2] * EPOCH;
 
-	velocity[i] += velocity[i] * EPOCH; //EPOCH is dt
-	velocity[i + 1] += velocity[i + 1] * EPOCH;
-	velocity[i + 2] += velocity[i + 2] * EPOCH;
+		velocity[i] += velocity[i] * EPOCH; //EPOCH is dt
+		velocity[i + 1] += velocity[i + 1] * EPOCH;
+		velocity[i + 2] += velocity[i + 2] * EPOCH;
 
-	velocity[i] += accel.x;
-	velocity[i + 1] += accel.y;
-	velocity[i + 2] += accel.z;
+		velocity[i] += accel.x;
+		velocity[i + 1] += accel.y;
+		velocity[i + 2] += accel.z;
 
-	__syncthreads();
+		__syncthreads(); //all threads (particles) finish current iteration of simulation
+	}
 	return;
 }
+
+void gravityParallel(float* hostPositions, float* hostVelocities, float* hostAccelerations, unsigned int simulationLength) {
+	//CUDA prep code
+	float* devicePositions;
+	float* deviceVelocities;
+	float* deviceAccelerations;
+	size_t size = NUM_PARTICLES * 3 * sizeof(float);
+
+	cudaCheck(cudaSetDevice(0)); //choose GPU
+	cudaCheck(cudaMalloc((void **)&devicePositions, size));
+	cudaCheck(cudaMalloc((void **)&deviceVelocities, size));
+	cudaCheck(cudaMalloc((void **)&deviceAccelerations, size));
+	cudaCheck(cudaMemcpy(devicePositions, hostPositions, size, cudaMemcpyHostToDevice));
+	cudaCheck(cudaMemcpy(deviceVelocities, hostVelocities, size, cudaMemcpyHostToDevice));
+	cudaCheck(cudaMemcpy(deviceAccelerations, hostAccelerations, size, cudaMemcpyHostToDevice));
+	dim3 dimGrid, dimBlock;
+	dimGrid.x = (size - 1) / BLOCK_SIZE + 1;
+	dimBlock.x = BLOCK_SIZE;
+	gravityParallelBaseKernel <<<dimGrid, dimBlock >>>(devicePositions, deviceVelocities, deviceAccelerations, simulationLength);
+	cudaCheck(cudaDeviceSynchronize());
+	cudaCheck(cudaMemcpy(hostPositions, devicePositions, size, cudaMemcpyDeviceToHost));
+	cudaCheck(cudaMemcpy(hostVelocities, deviceVelocities, size, cudaMemcpyDeviceToHost));
+	cudaCheck(cudaMemcpy(hostAccelerations, deviceAccelerations, size, cudaMemcpyDeviceToHost));
+	cudaCheck(cudaFree(devicePositions));
+	cudaCheck(cudaFree(deviceVelocities));
+	cudaCheck(cudaFree(deviceAccelerations));
+	
+	return;
+}
+
 //print particles after a single round of serial and parallel to compare output and check correctness
 void particleSystem::gravityBoth(float* positions, float* velocities, float* accelerations, unsigned int numRounds) {
 	unsigned int round;
 	for (round = 0; round < numRounds; round++) {
-		//serial portion
-		this->gravitySerial(1);
-		this->printParticles();
+		
+		//SERIAL PORTION
+		this->gravitySerial(1); //execution phase
+		this->printParticles(); //print phase
 
-		//parallel portion
-		gravityParallel(positions, velocities, accelerations, 1);
-		printParticlcesArrays(positions, velocities, accelerations);
+		//PARALLEL PORTION
+		gravityParallel(positions, velocities, accelerations, 1); //execution phase
+		printParticlcesArrays(positions, velocities, accelerations); //print phase
 	}
+
+	//CUDA cleanup code
 }
 
 int main()
