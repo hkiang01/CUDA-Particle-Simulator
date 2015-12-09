@@ -33,6 +33,9 @@ void gravityParallelKernel(float* positions, float* velocities, float* accelerat
 	__shared__ float3 velocities_shared[BLOCK_SIZE];
 	__shared__ float3 accelerations_shared[BLOCK_SIZE];
 
+	__shared__ float3 particles_temp[BLOCK_SIZE];
+	__shared__ float3 velocities_temp[BLOCK_SIZE];
+	__shared__ float3 accelerations_temp[BLOCK_SIZE];
 
 	unsigned int id = threadIdx.x + blockIdx.x * blockDim.x;
 	if (id >= NUM_PARTICLES) return;
@@ -58,12 +61,19 @@ void gravityParallelKernel(float* positions, float* velocities, float* accelerat
 	__syncthreads();
 
 	//CALCULATION PHASE
-	float3 curr = pos; //current position for given iteration
 	for (unsigned int simCount = 0; simCount < simulationLength; simCount++) {
 		//acc calculation phase
+		for (unsigned int i = 0; i < BLOCK_SIZE; i++) {
+			particles_temp[i] = particles_shared[i];
+			velocities_temp[i] = velocities_shared[i];
+			accelerations_temp[i] = accelerations_shared[i];
+		}
+		__syncthreads();
+		float3 curr = particles_temp[id]; //current position for given iteration
 		float3 force = { 0.0f, 0.0f, 0.0 };
 		for (unsigned i = 0; i < BLOCK_SIZE && i < NUM_PARTICLES; i++) { //all (other) particles
-			float3 other = particles_shared[i];
+			//float3 other = particles_shared[i];
+			float3 other = particles_temp[i];
 			if (id != i) /*(curr.x != other.x || curr.y != other.y || curr.z != other.z)*/ { //don't affect own particle
 				float3 ray = { curr.x - other.x, curr.y - other.y, curr.z - other.z };
 				if (PARALLEL_DEBUG) {
@@ -84,21 +94,20 @@ void gravityParallelKernel(float* positions, float* velocities, float* accelerat
 				force.x += xadd / UNIVERSAL_MASS;
 				force.y += yadd / UNIVERSAL_MASS;
 				force.z += zadd / UNIVERSAL_MASS;
-				
-				/*atomicAdd(&(force.x), xadd / UNIVERSAL_MASS);
-				atomicAdd(&(force.y), yadd / UNIVERSAL_MASS);
-				atomicAdd(&(force.z), zadd / UNIVERSAL_MASS);*/
+
+				__syncthreads(); //this shit's important
 
 				//update phase
-				particles_shared[id].x += velocities_shared[id].x * EPOCH; //EPOCH is dt
-				particles_shared[id].y += velocities_shared[id].y * EPOCH;
-				particles_shared[id].z += velocities_shared[id].z * EPOCH;
+				particles_shared[id].x += velocities_temp[id].x * EPOCH; //EPOCH is dt
+				particles_shared[id].y += velocities_temp[id].y * EPOCH;
+				particles_shared[id].z += velocities_temp[id].z * EPOCH;
 				curr = particles_shared[id]; //for next iteration (update current position)
 
-				velocities_shared[id].x += accelerations_shared[id].x * EPOCH; //EPOCH is dt
-				velocities_shared[id].y += accelerations_shared[id].y * EPOCH;
-				velocities_shared[id].z += accelerations_shared[id].z * EPOCH;
+				velocities_shared[id].x += accelerations_temp[id].x * EPOCH; //EPOCH is dt
+				velocities_shared[id].y += accelerations_temp[id].y * EPOCH;
+				velocities_shared[id].z += accelerations_temp[id].z * EPOCH;
 
+				//this is why that shit's important
 				accelerations_shared[id].x = force.x; //EPOCH is dt
 				accelerations_shared[id].y = force.y;
 				accelerations_shared[id].z = force.z;
