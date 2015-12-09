@@ -57,13 +57,18 @@ void particleSystem::gravitySerial(unsigned int simulationLength) {
 					std::cout << "distance (" << it->id << "," << itt->id << "): " << dist << std::endl;
 					float mi = it->getMass();
 					float mj = itt->getMass();
-					force.x += (float)GRAVITY * (float)mj * (float)currRay.x / (float)pow(dist, 3.0);
-					force.y += (float)GRAVITY * (float)mj * (float)currRay.y / (float)pow(dist, 3.0);
-					force.z += (float)GRAVITY * (float)mj * (float)currRay.z / (float)pow(dist, 3.0);
+					float xadd =(float)GRAVITY * (float)mj * (float)currRay.x / (float)pow(dist, 3.0);
+					float yadd = (float)GRAVITY * (float)mj * (float)currRay.y / (float)pow(dist, 3.0);
+					float zadd = (float)GRAVITY * (float)mj * (float)currRay.z / (float)pow(dist, 3.0);
+					std::cout << "(xadd,yadd,zadd) (" << it->id << "," << itt->id << "): " << xadd << "," << yadd << "," << zadd << ")" << std::endl;
+					force.x += xadd/float(mi); // F=ma --> a=F/m
+					force.y += yadd/float(mi);
+					force.z += zadd/float(mi);
 				}
 			}
 			it->updateParticle(EPOCH, force);
-			//it->printProps();
+			std::cout << "update (" << it->id << "): ";
+			it->printProps();
 			//std::cout << "Distance from 0 to 1: " << it->getDistance(*(it++)) << std::endl;
 		}
 		counter++;

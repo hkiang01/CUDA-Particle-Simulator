@@ -33,12 +33,11 @@ void gravityParallelKernel(float* positions, float* velocities, float* accelerat
 	__shared__ float3 velocities_shared[BLOCK_SIZE];
 	__shared__ float3 accelerations_shared[BLOCK_SIZE];
 
-	float3 accel = { 0.0f, 0.0f, 0.0 };
 
 	unsigned int id = threadIdx.x + blockIdx.x * blockDim.x;
 	if (id >= NUM_PARTICLES) return;
 
-	//load phase via float3 conversion
+	//LOAD PHASE via float3 conversion
 	float3 pos, vel, acc;
 	pos.x = positions[3 * id];
 	pos.y = positions[3 * id + 1];
@@ -55,9 +54,11 @@ void gravityParallelKernel(float* positions, float* velocities, float* accelerat
 	printf("import - id: %d\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", id, pos.x, pos.y, pos.z, vel.x, vel.y, vel.z, acc.x, acc.y, acc.z);
 	__syncthreads();
 
+	//CALCULATION PHASE
 	float3 curr = pos; //current position for given iteration
 	for (unsigned int simCount = 0; simCount < simulationLength; simCount++) {
 		//acc calculation phase
+		float3 force = { 0.0f, 0.0f, 0.0 };
 		for (unsigned i = 0; i < BLOCK_SIZE && i < NUM_PARTICLES; i++) { //all (other) particles
 			float3 other = particles_shared[i];
 			if (id != i) /*(curr.x != other.x || curr.y != other.y || curr.z != other.z)*/ { //don't affect own particle
@@ -69,30 +70,33 @@ void gravityParallelKernel(float* positions, float* velocities, float* accelerat
 				float xadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.x / (dist * dist * dist);
 				float yadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.y / (dist * dist * dist);
 				float zadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.z / (dist * dist * dist);
-				atomicAdd(&(accel.x), xadd);
-				atomicAdd(&(accel.y), yadd);
-				atomicAdd(&(accel.z), zadd);
+				printf("(xadd, yadd, zadd) (%u,%u); (%f,%f,%f)\n", id, i, xadd, yadd, zadd);
+				atomicAdd(&(force.x), xadd);
+				atomicAdd(&(force.y), yadd);
+				atomicAdd(&(force.z), zadd);
 			}
+			//update phase
+			particles_shared[id].x += velocities_shared[id].x * EPOCH; //EPOCH is dt
+			particles_shared[id].y += velocities_shared[id].y * EPOCH;
+			particles_shared[id].z += velocities_shared[id].z * EPOCH;
+			curr = particles_shared[id]; //for next iteration (update current position)
+
+			velocities_shared[id].x += accelerations_shared[id].x * EPOCH; //EPOCH is dt
+			velocities_shared[id].y += accelerations_shared[id].y * EPOCH;
+			velocities_shared[id].z += accelerations_shared[id].z * EPOCH;
+
+			accelerations_shared[id].x = force.x; //EPOCH is dt
+			accelerations_shared[id].y = force.y;
+			accelerations_shared[id].z = force.z;
+
+			printf("update (%d)\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", id, particles_shared[id].x, particles_shared[id].y, particles_shared[id].z,
+			velocities_shared[id].x, velocities_shared[id].y, velocities_shared[id].z,
+			accelerations_shared[id].x, accelerations_shared[id].y, accelerations_shared[id].z);
 		}
-		__syncthreads();
-
-		//update phase
-		particles_shared[id].x += velocities_shared[id].x * EPOCH; //EPOCH is dt
-		particles_shared[id].y += velocities_shared[id].y * EPOCH;
-		particles_shared[id].z += velocities_shared[id].z * EPOCH;
-		curr = particles_shared[id]; //for next iteration (update current position)
-
-		velocities_shared[id].x += accelerations_shared[id].x * EPOCH; //EPOCH is dt
-		velocities_shared[id].y += accelerations_shared[id].y * EPOCH;
-		velocities_shared[id].z += accelerations_shared[id].z * EPOCH;
-
-		accelerations_shared[id].x = accel.x; //EPOCH is dt
-		accelerations_shared[id].y = accel.y;
-		accelerations_shared[id].z = accel.z;
 		__syncthreads();
 	}
 
-	//output phase via float conversion
+	//OUTPUT PHASE via float conversion
 	positions[3 * id] = particles_shared[id].x;
 	positions[3 * id + 1] = particles_shared[id].y;
 	positions[3 * id + 2] = particles_shared[id].z;
@@ -141,13 +145,13 @@ void particleSystem::gravityBoth(float* positions, float* velocities, float* acc
 		//SERIAL PORTION
 		std::cout << "Serial round " << round << std::endl;
 		this->gravitySerial(1); //execution phase
-		this->printParticles(); //print phase
+		//this->printParticles(); //print phase
 		std::cout << std::endl;
 
 		//PARALLEL PORTION
 		std::cout << "Parallel round " << round << std::endl;
 		gravityParallel(positions, velocities, accelerations, 1); //execution phase
-		printParticlcesArrays(positions, velocities, accelerations); //print phase
+		//printParticlcesArrays(positions, velocities, accelerations); //print phase
 		std::cout << std::endl;
 	}
 
