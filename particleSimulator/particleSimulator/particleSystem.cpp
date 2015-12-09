@@ -30,7 +30,7 @@ void particleSystem::printParticles() {
 void particleSystem::printParticlcesArrays(float* p, float* v, float* a) {
 	unsigned int i;
 	for (i = 0; i < NUM_PARTICLES * 3; i += 3) {
-		printf("id: %d\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", i, p[i], p[i + 1], p[i + 2], v[i], v[i + 1], v[i + 2], a[i], a[i + 1], a[i + 2]);
+		printf("id: %d\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", i/3, p[i], p[i + 1], p[i + 2], v[i], v[i + 1], v[i + 2], a[i], a[i + 1], a[i + 2]);
 	}
 }
 
@@ -92,39 +92,51 @@ float* particleSystem::particlesVelfloatArray() {
 	return velArray;
 }
 
+
 float* particleSystem::particlesAccfloatArray() {
 	particlesAccFloatArrayCalled = true; //for destructor
 	float* accArray = new float[NUM_PARTICLES * 3];
 	unsigned int i = 0;
 	for (std::vector<particle>::iterator it = particles.begin(); it != particles.end(); ++it) {
-		accArray[i] = it->getVelocity().x;
-		accArray[i + 1] = it->getVelocity().y;
-		accArray[i + 2] = it->getVelocity().z;
+		accArray[i] = it->getAcceleration().x;
+		accArray[i + 1] = it->getAcceleration().y;
+		accArray[i + 2] = it->getAcceleration().z;
 		i += 3;
 	}
 	accFloatArrayPtr = accArray; //for destructor
 	return accArray;
 }
 
-void particleSystem::printPosFloatArray(float* posfloatArray) {
+void particleSystem::printPosFloatArray(float* posFloatArray) {
 	float x, y, z;
 	unsigned int i;
 	for (i = 0; i < NUM_PARTICLES * 3; i+=3) {
-		x = posfloatArray[i];
-		y = posfloatArray[i + 1];
-		z = posfloatArray[i + 2];
+		x = posFloatArray[i];
+		y = posFloatArray[i + 1];
+		z = posFloatArray[i + 2];
 		printf("id: %d\tpos: (%f, %f, %f)\n", i/3, x, y, z);
 	}
 }
 
-void particleSystem::printVelFloatArray(float* velfloatArray) {
+void particleSystem::printVelFloatArray(float* velFloatArray) {
 	float x, y, z;
 	unsigned int i;
 	for (i = 0; i < NUM_PARTICLES * 3; i += 3) {
-		x = velfloatArray[i];
-		y = velfloatArray[i + 1];
-		z = velfloatArray[i + 2];
+		x = velFloatArray[i];
+		y = velFloatArray[i + 1];
+		z = velFloatArray[i + 2];
 		printf("id: %d\tvel: (%f, %f, %f)\n", i / 3, x, y, z);
+	}
+}
+
+void particleSystem::printAccFloatArray(float* accFloatArray) {
+	float x, y, z;
+	unsigned int i;
+	for (i = 0; i < NUM_PARTICLES * 3; i += 3) {
+		x = accFloatArray[i];
+		y = accFloatArray[i + 1];
+		z = accFloatArray[i + 2];
+		printf("id: %d\tacc: (%f, %f, %f)\n", i / 3, x, y, z);
 	}
 }
 

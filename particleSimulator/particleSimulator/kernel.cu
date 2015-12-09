@@ -135,12 +135,16 @@ void particleSystem::gravityBoth(float* positions, float* velocities, float* acc
 	for (round = 0; round < numRounds; round++) {
 		
 		//SERIAL PORTION
+		std::cout << "Serial round " << round << std::endl;
 		this->gravitySerial(1); //execution phase
 		this->printParticles(); //print phase
+		std::cout << std::endl;
 
 		//PARALLEL PORTION
+		std::cout << "Parallel round " << round << std::endl;
 		gravityParallel(positions, velocities, accelerations, 1); //execution phase
 		printParticlcesArrays(positions, velocities, accelerations); //print phase
+		std::cout << std::endl;
 	}
 
 	//CUDA cleanup code
@@ -154,14 +158,15 @@ int main()
 	cudaCheck(cudaDeviceReset());
 
 	particleSystem parSys(NUM_PARTICLES);
-	//parSys.printParticles();
+	parSys.printParticles();
 	//parSys.gravitySerial(SIMULATION_LENGTH);
 	float* pos = parSys.particlesPosfloatArray();
 	float* vel = parSys.particlesVelfloatArray();
 	float* acc = parSys.particlesAccfloatArray();
 	std::cout << std::endl;
-	//parSys.printPosfloatArray(pos);
-	//parSys.printVelfloatArray(vel);
+	parSys.printPosFloatArray(pos);
+	parSys.printVelFloatArray(vel);
+	parSys.printAccFloatArray(acc);
 	parSys.gravityBoth(pos, vel, acc, SIMULATION_LENGTH);
 
 	system("pause"); //see output of terminal
