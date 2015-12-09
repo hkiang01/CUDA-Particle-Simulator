@@ -39,6 +39,11 @@ std::vector<particle> particleSystem::getParticlesVector() {
 }
 
 void particleSystem::gravitySerial(unsigned int simulationLength) {
+	for (std::vector<particle>::iterator it = particles.begin(); it != particles.end(); ++it) {
+		std::cout << "import - ";
+		it->printProps();
+	}
+
 	unsigned int counter = 0;
 	while (counter < simulationLength) {
 		for (std::vector<particle>::iterator it = particles.begin(); it != particles.end(); ++it) {
@@ -47,7 +52,9 @@ void particleSystem::gravitySerial(unsigned int simulationLength) {
 				if (it != itt) {
 					// force on i (it) by j (itt)
 					v3 currRay = it->getRay(*itt);
+					std::cout << "ray (" << it->id << "," << itt->id << "): (" << currRay.x << "," << currRay.y << "," << currRay.z << ")" << std::endl;
 					float dist = it->getDistance(*itt);
+					std::cout << "distance (" << it->id << "," << itt->id << "): " << dist << std::endl;
 					float mi = it->getMass();
 					float mj = itt->getMass();
 					force.x += (float)GRAVITY * (float)mj * (float)currRay.x / (float)pow(dist, 3.0);

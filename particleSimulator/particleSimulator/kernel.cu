@@ -15,8 +15,8 @@
 #define cudaCheck(stmt) do {													\
 	cudaError_t err = stmt;														\
 	if (err != cudaSuccess) {													\
-		fprintf(stderr, "Failed to run stmt ", #stmt);							\
-		fprintf(stderr, "Got CUDA error ... %s\n", cudaGetErrorString(err));	\
+		/*fprintf(stderr, "Failed to run stmt ", #stmt); */							\
+		/*fprintf(stderr, "Got CUDA error ... %s\n", cudaGetErrorString(err)); */	\
 	}																			\
 } while (0);
 
@@ -52,7 +52,7 @@ void gravityParallelKernel(float* positions, float* velocities, float* accelerat
 	acc.y = accelerations[3 * id + 1];
 	acc.z = accelerations[3 * id + 2];
 	accelerations_shared[threadIdx.x] = acc;
-	printf("load phase - id: %d\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", id, pos.x, pos.y, pos.z, vel.x, vel.y, vel.z, acc.x, acc.y, acc.z);
+	printf("import - id: %d\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", id, pos.x, pos.y, pos.z, vel.x, vel.y, vel.z, acc.x, acc.y, acc.z);
 	__syncthreads();
 
 	float3 curr = pos; //current position for given iteration
@@ -60,9 +60,12 @@ void gravityParallelKernel(float* positions, float* velocities, float* accelerat
 		//acc calculation phase
 		for (unsigned i = 0; i < BLOCK_SIZE && i < NUM_PARTICLES; i++) { //all (other) particles
 			float3 other = particles_shared[i];
-			if (curr.x != other.x || curr.y != other.y || curr.z != other.z) { //don't affect own particle
+			if (id != i) /*(curr.x != other.x || curr.y != other.y || curr.z != other.z)*/ { //don't affect own particle
 				float3 ray = { curr.x - other.x, curr.y - other.y, curr.z - other.z };
-				float dist = ray.x * ray.x + ray.y * ray.y + ray.z * ray.z;
+				printf("ray (%u,%u); (%f,%f,%f)\n", id, i, ray.x, ray.y, ray.z);
+				float dist = (curr.x - other.x)*(curr.x - other.x) + (curr.y - other.y)*(curr.y - other.y) + (curr.z - other.z)*(curr.z - other.z);
+				dist = sqrt(dist);
+				printf("distance (%u,%u); %f\n", id, i, dist);
 				float xadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.x / (dist * dist * dist);
 				float yadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.y / (dist * dist * dist);
 				float zadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.z / (dist * dist * dist);
@@ -157,7 +160,7 @@ int main()
 	// cudaDeviceReset must be called before exiting in order for profiling and
 	// tracing tools such as Nsight and Visual Profiler to show complete traces.
 	cudaCheck(cudaDeviceReset());
-
+	std::cout << "Initizing Particle System..." << std::endl;
 	particleSystem parSys(NUM_PARTICLES);
 	parSys.printParticles();
 	//parSys.gravitySerial(SIMULATION_LENGTH);
@@ -165,9 +168,9 @@ int main()
 	float* vel = parSys.particlesVelfloatArray();
 	float* acc = parSys.particlesAccfloatArray();
 	std::cout << std::endl;
-	parSys.printPosFloatArray(pos);
-	parSys.printVelFloatArray(vel);
-	parSys.printAccFloatArray(acc);
+	//parSys.printPosFloatArray(pos);
+	//parSys.printVelFloatArray(vel);
+	//parSys.printAccFloatArray(acc);
 	parSys.gravityBoth(pos, vel, acc, SIMULATION_LENGTH);
 
 	system("pause"); //see output of terminal
