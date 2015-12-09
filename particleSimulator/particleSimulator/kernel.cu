@@ -71,27 +71,34 @@ void gravityParallelKernel(float* positions, float* velocities, float* accelerat
 				float yadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.y / (dist * dist * dist);
 				float zadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.z / (dist * dist * dist);
 				printf("(xadd, yadd, zadd) (%u,%u); (%f,%f,%f)\n", id, i, xadd, yadd, zadd);
-				atomicAdd(&(force.x), xadd/UNIVERSAL_MASS);
-				atomicAdd(&(force.y), yadd/UNIVERSAL_MASS);
-				atomicAdd(&(force.z), zadd/UNIVERSAL_MASS);
+				
+				force.x += xadd / UNIVERSAL_MASS;
+				force.y += yadd / UNIVERSAL_MASS;
+				force.z += zadd / UNIVERSAL_MASS;
+				
+				/*atomicAdd(&(force.x), xadd / UNIVERSAL_MASS);
+				atomicAdd(&(force.y), yadd / UNIVERSAL_MASS);
+				atomicAdd(&(force.z), zadd / UNIVERSAL_MASS);*/
+
+				//update phase
+				particles_shared[id].x += velocities_shared[id].x * EPOCH; //EPOCH is dt
+				particles_shared[id].y += velocities_shared[id].y * EPOCH;
+				particles_shared[id].z += velocities_shared[id].z * EPOCH;
+				curr = particles_shared[id]; //for next iteration (update current position)
+
+				velocities_shared[id].x += accelerations_shared[id].x * EPOCH; //EPOCH is dt
+				velocities_shared[id].y += accelerations_shared[id].y * EPOCH;
+				velocities_shared[id].z += accelerations_shared[id].z * EPOCH;
+
+				accelerations_shared[id].x = force.x; //EPOCH is dt
+				accelerations_shared[id].y = force.y;
+				accelerations_shared[id].z = force.z;
+
+
+				printf("update (%d)\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", id, particles_shared[id].x, particles_shared[id].y, particles_shared[id].z,
+					velocities_shared[id].x, velocities_shared[id].y, velocities_shared[id].z,
+					accelerations_shared[id].x, accelerations_shared[id].y, accelerations_shared[id].z);
 			}
-			//update phase
-			particles_shared[id].x += velocities_shared[id].x * EPOCH; //EPOCH is dt
-			particles_shared[id].y += velocities_shared[id].y * EPOCH;
-			particles_shared[id].z += velocities_shared[id].z * EPOCH;
-			curr = particles_shared[id]; //for next iteration (update current position)
-
-			velocities_shared[id].x += accelerations_shared[id].x * EPOCH; //EPOCH is dt
-			velocities_shared[id].y += accelerations_shared[id].y * EPOCH;
-			velocities_shared[id].z += accelerations_shared[id].z * EPOCH;
-
-			accelerations_shared[id].x = force.x; //EPOCH is dt
-			accelerations_shared[id].y = force.y;
-			accelerations_shared[id].z = force.z;
-
-			printf("update (%d)\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", id, particles_shared[id].x, particles_shared[id].y, particles_shared[id].z,
-			velocities_shared[id].x, velocities_shared[id].y, velocities_shared[id].z,
-			accelerations_shared[id].x, accelerations_shared[id].y, accelerations_shared[id].z);
 		}
 		__syncthreads();
 	}
@@ -176,6 +183,9 @@ int main()
 	//parSys.printVelFloatArray(vel);
 	//parSys.printAccFloatArray(acc);
 	parSys.gravityBoth(pos, vel, acc, SIMULATION_LENGTH);
+
+	//parSys.gravitySerial(SIMULATION_LENGTH);
+	//gravityParallel(pos, vel, acc, SIMULATION_LENGTH);
 
 	system("pause"); //see output of terminal
 	return 0;
