@@ -2,7 +2,7 @@
 #define constants_h
 
 const float GRAVITY = 0.066742f;
-#define NUM_PARTICLES 2
+#define NUM_PARTICLES 3
 #define WORLD_DIM 100
 #define MAX_VEL 5
 #define MAX_ACC 5
