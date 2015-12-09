@@ -26,8 +26,6 @@ public:
 	void printVelFloatArray(float* velFloatArray);
 	void printAccFloatArray(float* accFloatArray);
 	void gravitySerial(unsigned int simulationLength);
-	void gravityParallel(float* positions, float* velocities, float* accelerations, unsigned int simulationLength);
-	float3 gravityParallelKernel(float3 curPos, float* positions, unsigned int simulationLength);
 	void gravityBoth(float* positions, float* velocities, float* accelerations, unsigned int numRounds);
 
 	std::vector<particle> particles;

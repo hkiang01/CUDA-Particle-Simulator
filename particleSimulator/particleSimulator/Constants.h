@@ -1,12 +1,6 @@
 #ifndef constants_h
 #define constants_h
 
-#include <cuda.h>
-#include "cuda_runtime.h"
-#include <cuda_runtime.h>
-#include <device_functions.h>
-#include "device_launch_parameters.h"
-
 const float GRAVITY = 0.066742f;
 #define NUM_PARTICLES 2
 #define WORLD_DIM 100
