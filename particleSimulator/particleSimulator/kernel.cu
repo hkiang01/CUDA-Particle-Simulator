@@ -19,7 +19,6 @@
 	}																			\
 } while (0);
 
-#define BLOCK_SIZE 256
 
 cudaError_t addWithCuda(int *c, const int *a, const int *b, unsigned int size);
 void gravitySerial(std::vector<particle> particles);
@@ -58,13 +57,15 @@ int main()
 	cudaCheck(cudaDeviceReset());
 
 	particleSystem parSys(NUM_PARTICLES);
-	parSys.printParticles();
+	//parSys.printParticles();
 	//parSys.gravitySerial(SIMULATION_LENGTH);
 	double* pos = parSys.particlesPosDoubleArray();
 	double* vel = parSys.particlesVelDoubleArray();
+	double* acc = parSys.particlesAccDoubleArray();
 	std::cout << std::endl;
-	parSys.printPosDoubleArray(pos);
-	parSys.printVelDoubleArray(vel);
+	//parSys.printPosDoubleArray(pos);
+	//parSys.printVelDoubleArray(vel);
+	parSys.gravityBoth(pos, vel, acc, SIMULATION_LENGTH);
 
 	system("pause"); //see output of terminal
 	return 0;

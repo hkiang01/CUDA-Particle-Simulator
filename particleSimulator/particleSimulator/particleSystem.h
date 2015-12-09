@@ -6,6 +6,13 @@
 #include <iostream>
 #include <vector>
 #include <stdlib.h>
+
+
+#include "cuda_runtime.h"
+#include "device_launch_parameters.h"
+#include <device_functions.h>
+#include <cuda.h>
+
 #include "Constants.h"
 #include "particle.h"
 
@@ -16,18 +23,26 @@ public:
 	particleSystem(unsigned int numParticles);
 	~particleSystem();
 	void printParticles();
+	void printParticlcesArrays(double* p, double* v, double* a);
 	std::vector<particle> particleSystem::getParticlesVector();
-	void gravitySerial(unsigned int simulationLength);
 	double* particlesPosDoubleArray();
 	double* particlesVelDoubleArray();
-	void printPosDoubleArray(double* posFloatArray);
-	void printVelDoubleArray(double* velFloatArray);
+	double* particlesAccDoubleArray();
+	void printPosDoubleArray(double* posDoubleArray);
+	void printVelDoubleArray(double* velDoubleArray);
+	void printAccDoubleArray(double* accDoubleArray);
+	void gravitySerial(unsigned int simulationLength);
+	void gravityParallel(double* positions, double* velocities, double* accelerations, unsigned int simulationLength);
+	double3 gravityParallelKernel(double3 curPos, double* positions, unsigned int simulationLength);
+	void gravityBoth(double* positions, double* velocities, double* accelerations, unsigned int numRounds);
 
 	std::vector<particle> particles;
 	double* posDoubleArrayPtr;
 	double* velDoubleArrayPtr;
+	double* accDoubleArrayPtr;
 	bool particlesPosDoubleArrayCalled;
 	bool particlesVelDoubleArrayCalled;
+	bool particlesAccDoubleArrayCalled;
 };
 
 #endif
