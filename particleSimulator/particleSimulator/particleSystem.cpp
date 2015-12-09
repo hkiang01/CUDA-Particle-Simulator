@@ -90,6 +90,8 @@ void particleSystem::gravityParallel(float* position, float* velocity, float* ac
 	curPos.z = position[3 * i + 2];
 	float3 accel = this->gravityParallelKernel(curPos, position, simulationLength);
 
+	__syncthreads();
+
 	position[i] += velocity[i] * EPOCH; //EPOCH is dt
 	position[i + 1] += velocity[i + 1] * EPOCH;
 	position[i + 2] += velocity[i + 2] * EPOCH;
@@ -101,6 +103,9 @@ void particleSystem::gravityParallel(float* position, float* velocity, float* ac
 	velocity[i] += accel.x;
 	velocity[i + 1] += accel.y;
 	velocity[i + 2] += accel.z;
+
+	__syncthreads();
+	return;
 }
 
 //calculate forces and resultant acceleration for a SINGLE particle
@@ -137,6 +142,7 @@ float3 particleSystem::gravityParallelKernel(float3 curr, float* positions, unsi
 			atomicAdd(&(accel.z), zadd);
 		}
 	}
+	__syncthreads();
 	return accel;
 }
 
