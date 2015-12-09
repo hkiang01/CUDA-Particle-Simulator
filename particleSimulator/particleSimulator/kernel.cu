@@ -51,7 +51,10 @@ void gravityParallelKernel(float* positions, float* velocities, float* accelerat
 	acc.y = accelerations[3 * id + 1];
 	acc.z = accelerations[3 * id + 2];
 	accelerations_shared[threadIdx.x] = acc;
-	printf("import - id: %d\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", id, pos.x, pos.y, pos.z, vel.x, vel.y, vel.z, acc.x, acc.y, acc.z);
+	
+	if (PARALLEL_DEBUG) {
+		printf("import - id: %d\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", id, pos.x, pos.y, pos.z, vel.x, vel.y, vel.z, acc.x, acc.y, acc.z);
+	}
 	__syncthreads();
 
 	//CALCULATION PHASE
@@ -63,14 +66,20 @@ void gravityParallelKernel(float* positions, float* velocities, float* accelerat
 			float3 other = particles_shared[i];
 			if (id != i) /*(curr.x != other.x || curr.y != other.y || curr.z != other.z)*/ { //don't affect own particle
 				float3 ray = { curr.x - other.x, curr.y - other.y, curr.z - other.z };
-				printf("ray (%u,%u); (%f,%f,%f)\n", id, i, ray.x, ray.y, ray.z);
+				if (PARALLEL_DEBUG) {
+					printf("ray (%u,%u); (%f,%f,%f)\n", id, i, ray.x, ray.y, ray.z);
+				}
 				float dist = (curr.x - other.x)*(curr.x - other.x) + (curr.y - other.y)*(curr.y - other.y) + (curr.z - other.z)*(curr.z - other.z);
 				dist = sqrt(dist);
-				printf("distance (%u,%u); %f\n", id, i, dist);
+				if (PARALLEL_DEBUG) {
+					printf("distance (%u,%u); %f\n", id, i, dist);
+				}
 				float xadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.x / (dist * dist * dist);
 				float yadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.y / (dist * dist * dist);
 				float zadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.z / (dist * dist * dist);
-				printf("(xadd, yadd, zadd) (%u,%u); (%f,%f,%f)\n", id, i, xadd, yadd, zadd);
+				if (PARALLEL_DEBUG) {
+					printf("(xadd, yadd, zadd) (%u,%u); (%f,%f,%f)\n", id, i, xadd, yadd, zadd);
+				}
 				
 				force.x += xadd / UNIVERSAL_MASS;
 				force.y += yadd / UNIVERSAL_MASS;
@@ -94,10 +103,11 @@ void gravityParallelKernel(float* positions, float* velocities, float* accelerat
 				accelerations_shared[id].y = force.y;
 				accelerations_shared[id].z = force.z;
 
-
-				printf("update (%d)\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", id, particles_shared[id].x, particles_shared[id].y, particles_shared[id].z,
-					velocities_shared[id].x, velocities_shared[id].y, velocities_shared[id].z,
-					accelerations_shared[id].x, accelerations_shared[id].y, accelerations_shared[id].z);
+				if (PARALLEL_UPDATE_OUTPUT) {
+					printf("update (%d)\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", id, particles_shared[id].x, particles_shared[id].y, particles_shared[id].z,
+						velocities_shared[id].x, velocities_shared[id].y, velocities_shared[id].z,
+						accelerations_shared[id].x, accelerations_shared[id].y, accelerations_shared[id].z);
+				}
 			}
 		}
 		__syncthreads();

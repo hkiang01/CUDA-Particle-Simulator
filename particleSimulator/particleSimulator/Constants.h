@@ -11,4 +11,9 @@ const float GRAVITY = 0.066742f;
 #define SIMULATION_LENGTH 2
 #define BLOCK_SIZE 256
 
+#define SERIAL_DEBUG false
+#define SERIAL_UPDATE_OUTPUT true
+#define PARALLEL_DEBUG false
+#define PARALLEL_UPDATE_OUTPUT true
+
 #endif

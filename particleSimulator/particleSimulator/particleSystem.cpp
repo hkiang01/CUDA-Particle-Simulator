@@ -39,11 +39,13 @@ std::vector<particle> particleSystem::getParticlesVector() {
 }
 
 void particleSystem::gravitySerial(unsigned int simulationLength) {
-	for (std::vector<particle>::iterator it = particles.begin(); it != particles.end(); ++it) {
-		std::cout << "import - ";
-		it->printProps();
-	}
 
+	if (SERIAL_DEBUG){
+		for (std::vector<particle>::iterator it = particles.begin(); it != particles.end(); ++it) {
+			std::cout << "import - ";
+			it->printProps();
+		}
+	}
 	unsigned int counter = 0;
 	while (counter < simulationLength) {
 		for (std::vector<particle>::iterator it = particles.begin(); it != particles.end(); ++it) {
@@ -52,23 +54,25 @@ void particleSystem::gravitySerial(unsigned int simulationLength) {
 				if (it != itt) {
 					// force on i (it) by j (itt)
 					v3 currRay = it->getRay(*itt);
-					std::cout << "ray (" << it->id << "," << itt->id << "): (" << currRay.x << "," << currRay.y << "," << currRay.z << ")" << std::endl;
+					if (SERIAL_DEBUG){ std::cout << "ray (" << it->id << "," << itt->id << "): (" << currRay.x << "," << currRay.y << "," << currRay.z << ")" << std::endl; }
 					float dist = it->getDistance(*itt);
-					std::cout << "distance (" << it->id << "," << itt->id << "): " << dist << std::endl;
+					if (SERIAL_DEBUG){ std::cout << "distance (" << it->id << "," << itt->id << "): " << dist << std::endl; }
 					float mi = it->getMass();
 					float mj = itt->getMass();
 					float xadd =(float)GRAVITY * (float)mj * (float)currRay.x / (float)pow(dist, 3.0);
 					float yadd = (float)GRAVITY * (float)mj * (float)currRay.y / (float)pow(dist, 3.0);
 					float zadd = (float)GRAVITY * (float)mj * (float)currRay.z / (float)pow(dist, 3.0);
-					std::cout << "(xadd,yadd,zadd) (" << it->id << "," << itt->id << "): " << xadd << "," << yadd << "," << zadd << ")" << std::endl;
+					if (SERIAL_DEBUG){ std::cout << "(xadd,yadd,zadd) (" << it->id << "," << itt->id << "): " << xadd << "," << yadd << "," << zadd << ")" << std::endl; }
 					force.x += xadd/float(mi); // F=ma --> a=F/m
 					force.y += yadd/float(mi);
 					force.z += zadd/float(mi);
 				}
 			}
 			it->updateParticle(EPOCH, force);
-			std::cout << "update (" << it->id << "): ";
-			it->printProps();
+			if (SERIAL_UPDATE_OUTPUT) {
+				std::cout << "update (" << it->id << "): ";
+				it->printProps();
+			}
 			//std::cout << "Distance from 0 to 1: " << it->getDistance(*(it++)) << std::endl;
 		}
 		counter++;
