@@ -12,8 +12,6 @@
 #include "particle.h"
 #include "particleSystem.h"
 
-__constant__ float GRAVITY_CUDA = 0.066742f;
-
 #define cudaCheck(stmt) do {													\
 	cudaError_t err = stmt;														\
 	if (err != cudaSuccess) {													\
@@ -21,6 +19,8 @@ __constant__ float GRAVITY_CUDA = 0.066742f;
 		fprintf(stderr, "Got CUDA error ... %s\n", cudaGetErrorString(err));	\
 	}																			\
 } while (0);
+
+__constant__ float GRAVITY_CUDA = 0.066742f;
 
 //calculate forces and resultant acceleration for a SINGLE particle due to physics interactions with ALL particles in system
 //also updates positions and velocities
@@ -44,14 +44,15 @@ void gravityParallelKernel(float* positions, float* velocities, float* accelerat
 	pos.y = positions[3 * id + 1];
 	pos.z = positions[3 * id + 2];
 	particles_shared[threadIdx.x] = pos;
-	vel.x = positions[3 * id];
-	vel.y = positions[3 * id + 1];
-	vel.z = positions[3 * id + 2];
+	vel.x = velocities[3 * id];
+	vel.y = velocities[3 * id + 1];
+	vel.z = velocities[3 * id + 2];
 	velocities_shared[threadIdx.x] = vel;
-	acc.x = positions[3 * id];
-	acc.y = positions[3 * id + 1];
-	acc.z = positions[3 * id + 2];
+	acc.x = accelerations[3 * id];
+	acc.y = accelerations[3 * id + 1];
+	acc.z = accelerations[3 * id + 2];
 	accelerations_shared[threadIdx.x] = acc;
+	printf("load phase - id: %d\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", id, pos.x, pos.y, pos.z, vel.x, vel.y, vel.z, acc.x, acc.y, acc.z);
 	__syncthreads();
 
 	float3 curr = pos; //current position for given iteration
