@@ -20,7 +20,7 @@
 	}																			\
 } while (0);
 
-__constant__ float GRAVITY_CUDA = 0.066742f;
+__constant__ float GRAVITY_CUDA = 0.066742f; //KEEP THIS THE SAME AS ITS CONSTANTS_H COUNTERPART!!!
 
 //calculate forces and resultant acceleration for a SINGLE particle due to physics interactions with ALL particles in system
 //also updates positions and velocities
