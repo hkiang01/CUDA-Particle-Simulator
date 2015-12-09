@@ -1,7 +1,7 @@
 #include "particle.h"
 
 
-__host__ __device__ particle::particle()
+ particle::particle()
 {
 	id = -1;
 	alive = true;
@@ -14,27 +14,27 @@ __host__ __device__ particle::particle()
 	vel.z = 0.0;
 }
 
-__host__ __device__ particle::particle(v3 posvec) {
+ particle::particle(v3 posvec) {
 	this->setPosition(posvec);
 }
 
-__host__ __device__ particle::particle(v3 posvec, float mass_in) {
+ particle::particle(v3 posvec, float mass_in) {
 	this->setPosition(posvec);
 	this->setMass(mass_in);
 }
 
-__host__ __device__ particle::particle(v3 posvec, v3 velvec, v3 accvec) {
+ particle::particle(v3 posvec, v3 velvec, v3 accvec) {
 	this->setPosition(posvec);
 	this->setVelocity(velvec);
 	this->setAcceleration(accvec);
 }
 
-__host__ __device__
+
 void particle::setMass(float mass_in) {
 	mass = mass_in;
 }
 
-__host__ __device__
+
 void particle::randomMass(float minVal, float maxVal) {
 	if (maxVal > minVal && minVal > 0.0) {
 		float calculatedMass = minVal + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxVal - minVal)));
@@ -48,34 +48,34 @@ void particle::randomMass(float minVal, float maxVal) {
 	}
 }
 
-__host__ __device__
+
 float particle::getMass() {
 	return mass;
 }
 
-__host__ __device__
+
 void particle::setID(int id_in) {
 	id = id_in;
 }
 
-__host__ __device__
+
 int particle::getID() {
 	return id;
 }
 
-__host__ __device__
+
 v3 particle::getPosition() {
 	return pos;
 }
 
-__host__ __device__
+
 void particle::setPosition(v3 posvec) {
 	pos.x = posvec.x;
 	pos.y = posvec.y;
 	pos.z = posvec.z;
 }
 
-__host__ __device__
+
 void particle::randomPosition(float minVal, float maxVal) {
 	if (maxVal > minVal) {
 		float diff = maxVal - minVal;
@@ -90,7 +90,7 @@ void particle::randomPosition(float minVal, float maxVal) {
 	}
 }
 
-__host__ __device__
+
 float particle::getDistance(particle const& other) {
 	float xarg = this->pos.x - other.pos.x;
 	float yarg = this->pos.y - other.pos.y;
@@ -99,7 +99,7 @@ float particle::getDistance(particle const& other) {
 	return sqrt(retval);
 }
 
-__host__ __device__
+
 v3 particle::getRay(particle const& p_other) {
 	v3 retval;
 	retval.x = this->pos.x - p_other.pos.x;
@@ -108,19 +108,19 @@ v3 particle::getRay(particle const& p_other) {
 	return retval;
 }
 
-__host__ __device__
+
 v3 particle::getVelocity() {
 	return vel;
 }
 
-__host__ __device__
+
 void particle::setVelocity(v3 velvec) {
 	vel.x = velvec.x;
 	vel.y = velvec.y;
 	vel.z = velvec.z;
 }
 
-__host__ __device__
+
 void particle::randomVelocity(float minVal, float maxVal) {
 	if (maxVal > minVal) {
 		float diff = maxVal - minVal;
@@ -135,19 +135,19 @@ void particle::randomVelocity(float minVal, float maxVal) {
 	}
 }
 
-__host__ __device__
+
 v3 particle::getAcceleration() {
 	return acc;
 }
 
-__host__ __device__
+
 void particle::setAcceleration(v3 accvec) {
 	acc.x = accvec.x;
 	acc.y = accvec.y;
 	acc.z = accvec.z;
 }
 
-__host__ __device__
+
 void particle::randomAcceleration(float minVal, float maxVal) {
 	if (maxVal > minVal) {
 		float diff = maxVal - minVal;
@@ -162,7 +162,7 @@ void particle::randomAcceleration(float minVal, float maxVal) {
 	}
 }
 
-__host__ __device__
+
 void particle::updateParticle(float dt) {
 	pos.x = pos.x + vel.x * dt;
 	pos.y = pos.y + vel.y * dt;
@@ -172,7 +172,7 @@ void particle::updateParticle(float dt) {
 	vel.z = vel.z + acc.z * dt;
 }
 
-__host__ __device__
+
 void particle::updateParticle(float dt, v3 accvec) {
 	pos.x = pos.x + vel.x * dt;
 	pos.y = pos.y + vel.y * dt;
@@ -183,18 +183,18 @@ void particle::updateParticle(float dt, v3 accvec) {
 	this->setAcceleration(accvec);
 }
 
-__host__ __device__
+
 void particle::applyForce(v3 forcevec) {
 	v3 accvec = v3(forcevec.x / mass, forcevec.y / mass, forcevec.z / mass);
 	this->setAcceleration(accvec);
 }
 
-__host__ __device__
+
 void particle::printProps() {
 	printf("id: %d\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", id, pos.x, pos.y, pos.z, vel.x, vel.y, vel.z, acc.x, acc.y, acc.z);
 }
 
-__host__ __device__
+
 particle::~particle()
 {
 }

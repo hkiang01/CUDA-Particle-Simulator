@@ -12,6 +12,8 @@
 #include "particle.h"
 #include "particleSystem.h"
 
+__constant__ float GRAVITY_CUDA = 0.066742f;
+
 #define cudaCheck(stmt) do {													\
 	cudaError_t err = stmt;														\
 	if (err != cudaSuccess) {													\
@@ -21,80 +23,81 @@
 } while (0);
 
 //calculate forces and resultant acceleration for a SINGLE particle due to physics interactions with ALL particles in system
-__device__
-void gravityParallelAccelKernel(float3 curr, float* positions, unsigned int simulationLength, float3 &accel) {
+//also updates positions and velocities
+__global__
+void gravityParallelKernel(float* positions, float* velocities, float* accelerations, unsigned int simulationLength) {
 
-	//strategy: one thread per particle
+	//strategy: one thread (id) per particle
 
 	__shared__ float3 particles_shared[BLOCK_SIZE];
-	accel = { 0.0f, 0.0f, 0.0 };
+	__shared__ float3 velocities_shared[BLOCK_SIZE];
+	__shared__ float3 accelerations_shared[BLOCK_SIZE];
+
+	float3 accel = { 0.0f, 0.0f, 0.0 };
 
 	unsigned int id = threadIdx.x + blockIdx.x * blockDim.x;
 	if (id >= NUM_PARTICLES) return;
 
-	//load phase
-	float3 pos;
+	//load phase via float3 conversion
+	float3 pos, vel, acc;
 	pos.x = positions[3 * id];
 	pos.y = positions[3 * id + 1];
 	pos.z = positions[3 * id + 2];
 	particles_shared[threadIdx.x] = pos;
+	vel.x = positions[3 * id];
+	vel.y = positions[3 * id + 1];
+	vel.z = positions[3 * id + 2];
+	velocities_shared[threadIdx.x] = vel;
+	acc.x = positions[3 * id];
+	acc.y = positions[3 * id + 1];
+	acc.z = positions[3 * id + 2];
+	accelerations_shared[threadIdx.x] = acc;
 	__syncthreads();
 
-	unsigned int i;
-	for (i = 0; i < BLOCK_SIZE && i < NUM_PARTICLES; i++) { //all particles
-		float3 other = particles_shared[i];
-		if (curr.x != other.x || curr.y != other.y || curr.z != other.z) { //don't affect own particle
-			float3 ray = { curr.x - other.x, curr.y - other.y, curr.z - other.z };
-			float dist = ray.x * ray.x + ray.y * ray.y + ray.z * ray.z;
-			float xadd = GRAVITY * UNIVERSAL_MASS * (float)ray.x / (dist * dist * dist);
-			float yadd = GRAVITY * UNIVERSAL_MASS * (float)ray.y / (dist * dist * dist);
-			float zadd = GRAVITY * UNIVERSAL_MASS * (float)ray.z / (dist * dist * dist);
-			atomicAdd(&(accel.x), xadd);
-			atomicAdd(&(accel.y), yadd);
-			atomicAdd(&(accel.z), zadd);
+	float3 curr = pos; //current position for given iteration
+	for (unsigned int simCount = 0; simCount < simulationLength; simCount++) {
+		//acc calculation phase
+		for (unsigned i = 0; i < BLOCK_SIZE && i < NUM_PARTICLES; i++) { //all (other) particles
+			float3 other = particles_shared[i];
+			if (curr.x != other.x || curr.y != other.y || curr.z != other.z) { //don't affect own particle
+				float3 ray = { curr.x - other.x, curr.y - other.y, curr.z - other.z };
+				float dist = ray.x * ray.x + ray.y * ray.y + ray.z * ray.z;
+				float xadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.x / (dist * dist * dist);
+				float yadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.y / (dist * dist * dist);
+				float zadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.z / (dist * dist * dist);
+				atomicAdd(&(accel.x), xadd);
+				atomicAdd(&(accel.y), yadd);
+				atomicAdd(&(accel.z), zadd);
+			}
 		}
+		__syncthreads();
+
+		//update phase
+		particles_shared[id].x += velocities_shared[id].x * EPOCH; //EPOCH is dt
+		particles_shared[id].y += velocities_shared[id].y * EPOCH;
+		particles_shared[id].z += velocities_shared[id].z * EPOCH;
+		curr = particles_shared[id]; //for next iteration (update current position)
+
+		velocities_shared[id].x += accelerations_shared[id].x * EPOCH; //EPOCH is dt
+		velocities_shared[id].y += accelerations_shared[id].y * EPOCH;
+		velocities_shared[id].z += accelerations_shared[id].z * EPOCH;
+
+		accelerations_shared[id].x = accel.x; //EPOCH is dt
+		accelerations_shared[id].y = accel.y;
+		accelerations_shared[id].z = accel.z;
+		__syncthreads();
 	}
-	__syncthreads();
-}
 
-__global__
-void gravityParallelBaseKernel(float* position, float* velocity, float* acceleration, unsigned int simulationLength) {
-
-	//strategy: one thread per particle
-
-	int index = blockIdx.x * blockDim.x + threadIdx.x;
-	if (index >= NUM_PARTICLES) return;
-
-	//adjust positions and velocities
-	int i = 3 * index;
-
-	float3 curPos;
-	curPos.x = position[3 * i];
-	curPos.y = position[3 * i + 1];
-	curPos.z = position[3 * i + 2];
-	float3 accel;
-
-	unsigned int simulCount;
-	for (simulCount = 0; simulCount < simulationLength; simulCount++) {
-		gravityParallelAccelKernel(curPos, position, simulationLength, accel); //accel passed by reference
-		cudaCheck(cudaDeviceSynchronize());
-		__syncthreads(); //all threads (particles) finish calculating acceleration based on physics relative to ALL other particles in system
-
-		position[i] += velocity[i] * EPOCH; //EPOCH is dt
-		position[i + 1] += velocity[i + 1] * EPOCH;
-		position[i + 2] += velocity[i + 2] * EPOCH;
-
-		velocity[i] += velocity[i] * EPOCH; //EPOCH is dt
-		velocity[i + 1] += velocity[i + 1] * EPOCH;
-		velocity[i + 2] += velocity[i + 2] * EPOCH;
-
-		velocity[i] += accel.x;
-		velocity[i + 1] += accel.y;
-		velocity[i + 2] += accel.z;
-
-		__syncthreads(); //all threads (particles) finish current iteration of simulation
-	}
-	return;
+	//output phase via float conversion
+	positions[3 * id] = particles_shared[id].x;
+	positions[3 * id + 1] = particles_shared[id].y;
+	positions[3 * id + 2] = particles_shared[id].z;
+	velocities[3 * id] = velocities_shared[id].x;
+	velocities[3 * id + 1] = velocities_shared[id].y;
+	velocities[3 * id + 2] = velocities_shared[id].z;
+	accelerations[3 * id] = accelerations_shared[id].x;
+	accelerations[3 * id + 1] = accelerations_shared[id].y;
+	accelerations[3 * id + 2] = accelerations_shared[id].z;
 }
 
 void gravityParallel(float* hostPositions, float* hostVelocities, float* hostAccelerations, unsigned int simulationLength) {
@@ -114,7 +117,7 @@ void gravityParallel(float* hostPositions, float* hostVelocities, float* hostAcc
 	dim3 dimGrid, dimBlock;
 	dimGrid.x = (size - 1) / BLOCK_SIZE + 1;
 	dimBlock.x = BLOCK_SIZE;
-	gravityParallelBaseKernel <<<dimGrid, dimBlock >>>(devicePositions, deviceVelocities, deviceAccelerations, simulationLength);
+	gravityParallelKernel <<<dimGrid, dimBlock >>>(devicePositions, deviceVelocities, deviceAccelerations, simulationLength);
 	cudaCheck(cudaDeviceSynchronize());
 	cudaCheck(cudaMemcpy(hostPositions, devicePositions, size, cudaMemcpyDeviceToHost));
 	cudaCheck(cudaMemcpy(hostVelocities, deviceVelocities, size, cudaMemcpyDeviceToHost));

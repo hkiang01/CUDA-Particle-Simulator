@@ -7,8 +7,8 @@
 #include <vector>
 #include <stdlib.h>
 
-#include "Constants.h"
 #include "particle.h"
+#include "Constants.h"
 
 class particleSystem
 {

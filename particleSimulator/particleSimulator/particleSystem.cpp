@@ -30,17 +30,7 @@ void particleSystem::printParticles() {
 void particleSystem::printParticlcesArrays(float* p, float* v, float* a) {
 	unsigned int i;
 	for (i = 0; i < NUM_PARTICLES * 3; i += 3) {
-		float3 pos, vel, acc;
-		pos.x = p[i];
-		pos.y = p[i + 1];
-		pos.z = p[i + 2];
-		vel.x = v[i];
-		vel.y = v[i + 1];
-		vel.z = v[i + 2];
-		acc.x = a[i];
-		acc.y = a[i + 1];
-		acc.z = a[i + 2];
-		printf("id: %d\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", i, pos.x, pos.y, pos.z, vel.x, vel.y, vel.z, acc.x, acc.y, acc.z);
+		printf("id: %d\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", i, p[i], p[i + 1], p[i + 2], v[i], v[i + 1], v[i + 2], a[i], a[i + 1], a[i + 2]);
 	}
 }
 
