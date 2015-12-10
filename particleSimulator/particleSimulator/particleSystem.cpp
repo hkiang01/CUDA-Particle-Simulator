@@ -2,6 +2,7 @@
 
 particleSystem::particleSystem()
 {
+	srand(time(0));
 	particlesPosFloatArrayCalled = false;
 	particlesVelFloatArrayCalled = false;
 	particlesAccFloatArrayCalled = false;
@@ -9,6 +10,7 @@ particleSystem::particleSystem()
 
 particleSystem::particleSystem(unsigned int numParticles)
 {
+	srand(time(0));
 	unsigned int i;
 	for (i = 0; i < numParticles; i++) {
 		particle p = particle();

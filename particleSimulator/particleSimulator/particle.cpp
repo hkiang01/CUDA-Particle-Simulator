@@ -167,6 +167,7 @@ void particle::randomAcceleration(float minVal, float maxVal) {
 		accvec.y = minVal + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxVal - minVal)));
 		accvec.z = minVal + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxVal - minVal)));
 		*/
+		//srand(time(NULL));
 		accvec.x = WORLD_DIM*(rand() / (float)RAND_MAX * 2 - 1);
 		accvec.y = WORLD_DIM*(rand() / (float)RAND_MAX * 2 - 1);
 		accvec.z = WORLD_DIM*(rand() / (float)RAND_MAX * 2 - 1);
