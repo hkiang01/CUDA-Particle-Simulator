@@ -180,6 +180,10 @@ void particleSystem::gravityBoth(float* positions, float* velocities, float* acc
 		gravityParallel(positions, velocities, accelerations, 1); //execution phase
 		//printParticlcesArrays(positions, velocities, accelerations); //print phase
 		std::cout << std::endl;
+
+		if (SAME_CHECK) {
+			this->isSame(positions, velocities, accelerations);
+		}
 	}
 
 	//CUDA cleanup code

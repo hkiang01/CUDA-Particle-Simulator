@@ -174,6 +174,32 @@ void particleSystem::printAccFloatArray(float* accFloatArray) {
 	}
 }
 
+bool particleSystem::isSame(float* p, float* v, float* a) {
+	bool retval = true;
+	for (unsigned int i = 0; i < NUM_PARTICLES; i++) {
+		v3 pos = particles[i].getPosition();
+		v3 vel = particles[i].getVelocity();
+		v3 acc = particles[i].getAcceleration();
+
+		bool currSame = (pos.x == p[3 * i] && pos.y == p[3 * i + 1] && pos.z == p[3 * i + 2]
+			&& vel.x == v[3 * i] && vel.y == v[3 * i + 1] && vel.z == v[3 * i + 2]
+			&& acc.x == a[3 * i] && acc.y == a[3 * i + 1] && acc.z == a[3 * i + 2]);
+
+		if (retval && !currSame) { //first difference
+			std::cout << "NOT the same, differences below..." << std::endl;
+		}
+		if (!currSame) {
+			retval = false;
+			std::cout << "(serial) ";
+			particles[i].printProps();
+			printf("(parallel) - id: %d\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", i / 3, p[i], p[i + 1], p[i + 2], v[i], v[i + 1], v[i + 2], a[i], a[i + 1], a[i + 2]);
+		}
+	}
+	if (retval) std::cout << "SAME\n" << std::endl;
+	std::cout << std::endl;
+	return retval;
+}
+
 particleSystem::~particleSystem()
 {
 	//if (particlesPosfloatArrayCalled) free(posfloatArrayPtr);

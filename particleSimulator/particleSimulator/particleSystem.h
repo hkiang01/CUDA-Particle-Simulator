@@ -26,8 +26,11 @@ public:
 	void printVelFloatArray(float* velFloatArray);
 	void printAccFloatArray(float* accFloatArray);
 	void gravitySerial(unsigned int simulationLength);
+	
+	//parallel consideration
 	void gravityBoth(float* positions, float* velocities, float* accelerations, unsigned int numRounds);
-
+	bool isSame(float* p, float* v, float* a);
+	
 	std::vector<particle> particles;
 	float* posFloatArrayPtr;
 	float* velFloatArrayPtr;

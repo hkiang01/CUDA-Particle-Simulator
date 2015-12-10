@@ -2,7 +2,7 @@
 #define constants_h
 
 const float GRAVITY = 100.066742f;
-#define NUM_PARTICLES 2
+#define NUM_PARTICLES 3
 #define WORLD_DIM 100
 #define MAX_VEL 5
 #define MAX_ACC 5
@@ -15,5 +15,6 @@ const float GRAVITY = 100.066742f;
 #define SERIAL_UPDATE_OUTPUT true
 #define PARALLEL_DEBUG false
 #define PARALLEL_UPDATE_OUTPUT true
+#define SAME_CHECK true
 
 #endif
