@@ -80,9 +80,14 @@ void particle::randomPosition(float minVal, float maxVal) {
 	if (maxVal > minVal) {
 		float diff = maxVal - minVal;
 		v3 posvec;
+		/*
 		posvec.x = minVal + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxVal - minVal)));
 		posvec.y = minVal + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxVal - minVal)));
 		posvec.z = minVal + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxVal - minVal)));
+		*/
+		posvec.x = WORLD_DIM*(rand() / (float)RAND_MAX * 2 - 1);
+		posvec.y = WORLD_DIM*(rand() / (float)RAND_MAX * 2 - 1);
+		posvec.z = WORLD_DIM*(rand() / (float)RAND_MAX * 2 - 1);
 		this->setPosition(posvec);
 	}
 	else {
@@ -125,9 +130,14 @@ void particle::randomVelocity(float minVal, float maxVal) {
 	if (maxVal > minVal) {
 		float diff = maxVal - minVal;
 		v3 velvec;
+		/*
 		velvec.x = minVal + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxVal - minVal)));
 		velvec.y = minVal + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxVal - minVal)));
 		velvec.z = minVal + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxVal - minVal)));
+		*/
+		velvec.x = WORLD_DIM*(rand() / (float)RAND_MAX * 2 - 1);
+		velvec.y = WORLD_DIM*(rand() / (float)RAND_MAX * 2 - 1);
+		velvec.z = WORLD_DIM*(rand() / (float)RAND_MAX * 2 - 1);
 		this->setVelocity(velvec);
 	}
 	else {
@@ -151,10 +161,15 @@ void particle::setAcceleration(v3 accvec) {
 void particle::randomAcceleration(float minVal, float maxVal) {
 	if (maxVal > minVal) {
 		float diff = maxVal - minVal;
-		v3 accvec;
+		v3 accvec; 
+		/*
 		accvec.x = minVal + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxVal - minVal)));
 		accvec.y = minVal + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxVal - minVal)));
 		accvec.z = minVal + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxVal - minVal)));
+		*/
+		accvec.x = WORLD_DIM*(rand() / (float)RAND_MAX * 2 - 1);
+		accvec.y = WORLD_DIM*(rand() / (float)RAND_MAX * 2 - 1);
+		accvec.z = WORLD_DIM*(rand() / (float)RAND_MAX * 2 - 1);
 		this->setAcceleration(accvec);
 	}
 	else {
