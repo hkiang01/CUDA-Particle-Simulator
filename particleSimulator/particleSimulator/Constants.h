@@ -1,8 +1,8 @@
 #ifndef constants_h
 #define constants_h
 
-const float GRAVITY = 0.066742f;
-#define NUM_PARTICLES 3
+const float GRAVITY = 100.066742f;
+#define NUM_PARTICLES 2
 #define WORLD_DIM 100
 #define MAX_VEL 5
 #define MAX_ACC 5

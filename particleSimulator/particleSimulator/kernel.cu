@@ -15,12 +15,12 @@
 #define cudaCheck(stmt) do {													\
 	cudaError_t err = stmt;														\
 	if (err != cudaSuccess) {													\
-		/*fprintf(stderr, "Failed to run stmt ", #stmt); */							\
-		/*fprintf(stderr, "Got CUDA error ... %s\n", cudaGetErrorString(err)); */	\
+		fprintf(stderr, "Failed to run stmt ", #stmt); 							\
+		fprintf(stderr, "Got CUDA error ... %s\n", cudaGetErrorString(err)); 	\
 	}																			\
 } while (0);
 
-__constant__ float GRAVITY_CUDA = 0.066742f; //KEEP THIS THE SAME AS ITS CONSTANTS_H COUNTERPART!!!
+__constant__ float GRAVITY_CUDA = 100.066742f; //KEEP THIS THE SAME AS ITS CONSTANTS_H COUNTERPART!!!
 
 //calculate forces and resultant acceleration for a SINGLE particle due to physics interactions with ALL particles in system
 //also updates positions and velocities
@@ -90,7 +90,7 @@ void gravityParallelKernel(float* positions, float* velocities, float* accelerat
 				if (PARALLEL_DEBUG) {
 					printf("(xadd, yadd, zadd) (%u,%u); (%f,%f,%f)\n", id, i, xadd, yadd, zadd);
 				}
-				
+
 				force.x += xadd / UNIVERSAL_MASS;
 				force.y += yadd / UNIVERSAL_MASS;
 				force.z += zadd / UNIVERSAL_MASS;
@@ -112,13 +112,14 @@ void gravityParallelKernel(float* positions, float* velocities, float* accelerat
 				accelerations_shared[id].y = force.y;
 				accelerations_shared[id].z = force.z;
 
-				if (PARALLEL_UPDATE_OUTPUT) {
-					printf("update (%d)\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", id, particles_shared[id].x, particles_shared[id].y, particles_shared[id].z,
-						velocities_shared[id].x, velocities_shared[id].y, velocities_shared[id].z,
-						accelerations_shared[id].x, accelerations_shared[id].y, accelerations_shared[id].z);
-				}
 			}
 		}
+		if (PARALLEL_UPDATE_OUTPUT) {
+			printf("update (%d)\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", id, particles_shared[id].x, particles_shared[id].y, particles_shared[id].z,
+				velocities_shared[id].x, velocities_shared[id].y, velocities_shared[id].z,
+				accelerations_shared[id].x, accelerations_shared[id].y, accelerations_shared[id].z);
+		}
+			
 		__syncthreads();
 	}
 
