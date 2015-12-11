@@ -42,12 +42,12 @@ std::vector<particle> particleSystem::getParticlesVector() {
 
 void particleSystem::gravitySerial(unsigned int simulationLength) {
 
-	if (SERIAL_DEBUG){
+	/*if (SERIAL_DEBUG){
 		for (std::vector<particle>::iterator it = particles.begin(); it != particles.end(); ++it) {
 			std::cout << "import - ";
 			it->printProps();
 		}
-	}
+	}*/
 
 	std::vector<particle> temp; //store the old (the read source), particles - class member - is where the updates occur
 	//reason: no particle should update unless all compuation for all particles are finished
@@ -64,11 +64,11 @@ void particleSystem::gravitySerial(unsigned int simulationLength) {
 					//v3 currRay = it->getRay(*itt);
 					v3 currRay = temp[i].getRay(temp[j]);
 					//if (SERIAL_DEBUG){ std::cout << "ray (" << it->id << "," << itt->id << "): (" << currRay.x << "," << currRay.y << "," << currRay.z << ")" << std::endl; }
-					if (SERIAL_DEBUG){ std::cout << "ray (" << temp[i].id << "," << temp[j].id << "): (" << currRay.x << "," << currRay.y << "," << currRay.z << ")" << std::endl; }
+					//if (SERIAL_DEBUG){ std::cout << "ray (" << temp[i].id << "," << temp[j].id << "): (" << currRay.x << "," << currRay.y << "," << currRay.z << ")" << std::endl; }
 					//float dist = it->getDistance(*itt);
 					float dist = temp[i].getDistance(temp[j]);
 					//if (SERIAL_DEBUG){ std::cout << "distance (" << it->id << "," << itt->id << "): " << dist << std::endl; }
-					if (SERIAL_DEBUG){ std::cout << "distance (" << temp[i].id << "," << temp[j].id << "): " << dist << std::endl; }
+					//if (SERIAL_DEBUG){ std::cout << "distance (" << temp[i].id << "," << temp[j].id << "): " << dist << std::endl; }
 					//float mi = it->getMass();
 					float mi = temp[i].getMass();
 					//float mj = itt->getMass();
@@ -77,7 +77,7 @@ void particleSystem::gravitySerial(unsigned int simulationLength) {
 					float yadd = (float)GRAVITY * (float)mj * (float)currRay.y / (float)pow(dist, 3.0);
 					float zadd = (float)GRAVITY * (float)mj * (float)currRay.z / (float)pow(dist, 3.0);
 					//if (SERIAL_DEBUG){ std::cout << "(xadd,yadd,zadd) (" << it->id << "," << itt->id << "): " << xadd << "," << yadd << "," << zadd << ")" << std::endl; }
-					if (SERIAL_DEBUG){ std::cout << "(xadd,yadd,zadd) (" << temp[i].id << "," << temp[j].id << "): " << xadd << "," << yadd << "," << zadd << ")" << std::endl; }
+					//if (SERIAL_DEBUG){ std::cout << "(xadd,yadd,zadd) (" << temp[i].id << "," << temp[j].id << "): " << xadd << "," << yadd << "," << zadd << ")" << std::endl; }
 					force.x += xadd/float(mi); // F=ma --> a=F/m
 					force.y += yadd/float(mi);
 					force.z += zadd/float(mi);
@@ -85,9 +85,9 @@ void particleSystem::gravitySerial(unsigned int simulationLength) {
 			}
 			//it->updateParticle(EPOCH, force);
 			particles[i].updateParticle(EPOCH, force); //KEY: update occurs at the class member particles vector
-			if (SERIAL_UPDATE_OUTPUT) {
+			if (i == 0 || i == 299) {
 				//std::cout << "update (" << it->id << "): ";
-				std::cout << "update (" << particles[i].id << "): ";
+				//std::cout << "update (" << particles[i].id << "): ";
 				//it->printProps();
 				particles[i].printProps();
 			}

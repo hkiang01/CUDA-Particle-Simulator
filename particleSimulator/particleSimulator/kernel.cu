@@ -25,22 +25,27 @@ __constant__ float GRAVITY_CUDA = 100.066742f; //KEEP THIS THE SAME AS ITS CONST
 //calculate forces and resultant acceleration for a SINGLE particle due to physics interactions with ALL particles in system
 //also updates positions and velocities
 __global__
-void gravityParallelKernel(float* positions, float* velocities, float* accelerations, unsigned int simulationLength) {
+void gravityParallelKernel(float3* __restrict__ positions, float3* __restrict__ velocities, float3* __restrict__ accelerations, unsigned int simulationLength) {
 
 	//strategy: one thread (id) per particle
 
-	__shared__ float3 particles_shared[BLOCK_SIZE];
+	/*__shared__ float3 particles_shared[BLOCK_SIZE];
 	__shared__ float3 velocities_shared[BLOCK_SIZE];
 	__shared__ float3 accelerations_shared[BLOCK_SIZE];
 
 	__shared__ float3 particles_temp[BLOCK_SIZE];
 	__shared__ float3 velocities_temp[BLOCK_SIZE];
-	__shared__ float3 accelerations_temp[BLOCK_SIZE];
+	__shared__ float3 accelerations_temp[BLOCK_SIZE];*/
 
 	unsigned int id = threadIdx.x + blockIdx.x * blockDim.x;
 	if (id >= NUM_PARTICLES) return;
 
-	//LOAD PHASE via float3 conversion
+	float3 temp_pos;
+	float3 temp_vel;
+	float3 temp_acc;
+	float3 force;
+
+	/*LOAD PHASE via float3 conversion
 	float3 pos, vel, acc;
 	pos.x = positions[3 * id];
 	pos.y = positions[3 * id + 1];
@@ -58,89 +63,79 @@ void gravityParallelKernel(float* positions, float* velocities, float* accelerat
 	if (PARALLEL_DEBUG) {
 		printf("import - id: %d\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", id, pos.x, pos.y, pos.z, vel.x, vel.y, vel.z, acc.x, acc.y, acc.z);
 	}
-	__syncthreads();
+	__syncthreads();*/
 
 	//CALCULATION PHASE
-	for (unsigned int simCount = 0; simCount < simulationLength; simCount++) {
-		//acc calculation phase
-		for (unsigned int i = 0; i < BLOCK_SIZE; i++) {
-			particles_temp[i] = particles_shared[i];
-			velocities_temp[i] = velocities_shared[i];
-			accelerations_temp[i] = accelerations_shared[i];
-		}
-		__syncthreads();
-		float3 curr = particles_temp[id]; //current position for given iteration
-		float3 force = { 0.0f, 0.0f, 0.0 };
-		for (unsigned i = 0; i < BLOCK_SIZE && i < NUM_PARTICLES; i++) { //all (other) particles
-			//float3 other = particles_shared[i];
-			float3 other = particles_temp[i];
-			if (id != i) /*(curr.x != other.x || curr.y != other.y || curr.z != other.z)*/ { //don't affect own particle
-				float3 ray = { curr.x - other.x, curr.y - other.y, curr.z - other.z };
-				if (PARALLEL_DEBUG) {
+	for (unsigned int simCount = 0; simCount < simulationLength; simCount++) 
+	{
+		temp_pos = positions[id];
+		temp_vel = velocities[id];
+		temp_acc = accelerations[id];
+
+		force = { 0.0f, 0.0f, 0.0 };
+		for (unsigned i = 0; i < NUM_PARTICLES; i++) //all (other) particles
+		{
+			if (id != i) //don't affect own particle
+			{
+				float3 other = positions[i];
+				float3 ray = { temp_pos.x - other.x, temp_pos.y - other.y, temp_pos.z - other.z };
+				/*if (PARALLEL_DEBUG) {
 					printf("ray (%u,%u); (%f,%f,%f)\n", id, i, ray.x, ray.y, ray.z);
-				}
-				float dist = (curr.x - other.x)*(curr.x - other.x) + (curr.y - other.y)*(curr.y - other.y) + (curr.z - other.z)*(curr.z - other.z);
+					}*/
+				float dist = (temp_pos.x - other.x)*(temp_pos.x - other.x) + (temp_pos.y - other.y)*(temp_pos.y - other.y) + (temp_pos.z - other.z)*(temp_pos.z - other.z);
 				dist = sqrt(dist);
-				if (PARALLEL_DEBUG) {
+				/*if (PARALLEL_DEBUG) {
 					printf("distance (%u,%u); %f\n", id, i, dist);
-				}
+					}*/
 				float xadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.x / (dist * dist * dist);
 				float yadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.y / (dist * dist * dist);
 				float zadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.z / (dist * dist * dist);
-				if (PARALLEL_DEBUG) {
+				/*if (PARALLEL_DEBUG) {
 					printf("(xadd, yadd, zadd) (%u,%u); (%f,%f,%f)\n", id, i, xadd, yadd, zadd);
-				}
+					}*/
 
 				force.x += xadd / UNIVERSAL_MASS;
 				force.y += yadd / UNIVERSAL_MASS;
 				force.z += zadd / UNIVERSAL_MASS;
 
-				__syncthreads(); //this shit's important
-
-				//update phase
-				particles_shared[id].x += velocities_temp[id].x * EPOCH; //EPOCH is dt
-				particles_shared[id].y += velocities_temp[id].y * EPOCH;
-				particles_shared[id].z += velocities_temp[id].z * EPOCH;
-				curr = particles_shared[id]; //for next iteration (update current position)
-
-				velocities_shared[id].x += accelerations_temp[id].x * EPOCH; //EPOCH is dt
-				velocities_shared[id].y += accelerations_temp[id].y * EPOCH;
-				velocities_shared[id].z += accelerations_temp[id].z * EPOCH;
-
-				//this is why that shit's important
-				accelerations_shared[id].x = force.x; //EPOCH is dt
-				accelerations_shared[id].y = force.y;
-				accelerations_shared[id].z = force.z;
-
 			}
 		}
+
+		//update phase
+		positions[id].x += temp_vel.x * EPOCH; //EPOCH is dt
+		positions[id].y += temp_vel.y * EPOCH;
+		positions[id].z += temp_vel.z * EPOCH;
+
+		velocities[id].x += temp_acc.x * EPOCH; //EPOCH is dt
+		velocities[id].y += temp_acc.y * EPOCH;
+		velocities[id].z += temp_acc.z * EPOCH;
+
+		//this is why that shit's important
+		accelerations[id].x = force.x; //EPOCH is dt
+		accelerations[id].y = force.y;
+		accelerations[id].z = force.z;
+
+			
+			/*
 		if (PARALLEL_UPDATE_OUTPUT) {
 			printf("update (%d)\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", id, particles_shared[id].x, particles_shared[id].y, particles_shared[id].z,
 				velocities_shared[id].x, velocities_shared[id].y, velocities_shared[id].z,
 				accelerations_shared[id].x, accelerations_shared[id].y, accelerations_shared[id].z);
-		}
-			
+		}*/
+		
+		if (id == 0 || id == 299)
+			printf("update (%d)\tpos: (%f, %f, %f)\n", id, positions[id].x, positions[id].y, positions[id].z);
+
 		__syncthreads();
 	}
-
-	//OUTPUT PHASE via float conversion
-	positions[3 * id] = particles_shared[id].x;
-	positions[3 * id + 1] = particles_shared[id].y;
-	positions[3 * id + 2] = particles_shared[id].z;
-	velocities[3 * id] = velocities_shared[id].x;
-	velocities[3 * id + 1] = velocities_shared[id].y;
-	velocities[3 * id + 2] = velocities_shared[id].z;
-	accelerations[3 * id] = accelerations_shared[id].x;
-	accelerations[3 * id + 1] = accelerations_shared[id].y;
-	accelerations[3 * id + 2] = accelerations_shared[id].z;
 }
 
-void gravityParallel(float* hostPositions, float* hostVelocities, float* hostAccelerations, unsigned int simulationLength) {
+void gravityParallel(float3* hostPositions, float3* hostVelocities, float3* hostAccelerations, unsigned int simulationLength) {
 	//CUDA prep code
-	float* devicePositions;
-	float* deviceVelocities;
-	float* deviceAccelerations;
-	size_t size = NUM_PARTICLES * 3 * sizeof(float);
+	float3* devicePositions;
+	float3* deviceVelocities;
+	float3* deviceAccelerations;
+	size_t size = NUM_PARTICLES * sizeof(float3);
 
 	cudaCheck(cudaSetDevice(0)); //choose GPU
 	cudaCheck(cudaMalloc((void **)&devicePositions, size));
@@ -150,7 +145,7 @@ void gravityParallel(float* hostPositions, float* hostVelocities, float* hostAcc
 	cudaCheck(cudaMemcpy(deviceVelocities, hostVelocities, size, cudaMemcpyHostToDevice));
 	cudaCheck(cudaMemcpy(deviceAccelerations, hostAccelerations, size, cudaMemcpyHostToDevice));
 	dim3 dimGrid, dimBlock;
-	dimGrid.x = (size - 1) / BLOCK_SIZE + 1;
+	dimGrid.x = (NUM_PARTICLES - 1) / BLOCK_SIZE + 1;
 	dimBlock.x = BLOCK_SIZE;
 	gravityParallelKernel <<<dimGrid, dimBlock >>>(devicePositions, deviceVelocities, deviceAccelerations, simulationLength);
 	cudaCheck(cudaDeviceSynchronize());
@@ -164,7 +159,7 @@ void gravityParallel(float* hostPositions, float* hostVelocities, float* hostAcc
 	return;
 }
 
-//print particles after a single round of serial and parallel to compare output and check correctness
+/*print particles after a single round of serial and parallel to compare output and check correctness
 void particleSystem::gravityBoth(float* positions, float* velocities, float* accelerations, unsigned int numRounds) {
 	unsigned int round;
 	for (round = 0; round < numRounds; round++) {
@@ -187,7 +182,7 @@ void particleSystem::gravityBoth(float* positions, float* velocities, float* acc
 	}
 
 	//CUDA cleanup code
-}
+}*/
 
 int main()
 {
@@ -197,19 +192,43 @@ int main()
 	cudaCheck(cudaDeviceReset());
 	std::cout << "Initizing Particle System..." << std::endl;
 	particleSystem parSys(NUM_PARTICLES);
-	parSys.printParticles();
+	//parSys.printParticles();
 	//parSys.gravitySerial(SIMULATION_LENGTH);
-	float* pos = parSys.particlesPosfloatArray();
-	float* vel = parSys.particlesVelfloatArray();
-	float* acc = parSys.particlesAccfloatArray();
+	float* p = parSys.particlesPosfloatArray();
+	float* v = parSys.particlesVelfloatArray();
+	float* a = parSys.particlesAccfloatArray();
+
+	float3 positions[NUM_PARTICLES];
+	float3 velocities[NUM_PARTICLES];
+	float3 accelerations[NUM_PARTICLES];
+
+	//convert to float3
+	float3 pos, vel, acc;
+	for (int i = 0; i < NUM_PARTICLES; i++)
+	{
+		pos.x = p[3 * i];
+		pos.y = p[3 * i + 1];
+		pos.z = p[3 * i + 2];
+		positions[i] = pos;
+		vel.x = v[3 * i];
+		vel.y = v[3 * i + 1];
+		vel.z = v[3 * i + 2];
+		velocities[i] = vel;
+		acc.x = a[3 * i];
+		acc.y = a[3 * i + 1];
+		acc.z = a[3 * i + 2];
+		accelerations[i] = acc;
+	}
+
 	std::cout << std::endl;
 	//parSys.printPosFloatArray(pos);
 	//parSys.printVelFloatArray(vel);
 	//parSys.printAccFloatArray(acc);
-	parSys.gravityBoth(pos, vel, acc, SIMULATION_LENGTH);
+	//parSys.gravityBoth(pos, vel, acc, SIMULATION_LENGTH);
 
-	//parSys.gravitySerial(SIMULATION_LENGTH);
-	//gravityParallel(pos, vel, acc, SIMULATION_LENGTH);
+	parSys.gravitySerial(SIMULATION_LENGTH);
+	printf("\n");
+	gravityParallel(positions, velocities, accelerations, SIMULATION_LENGTH);
 
 	system("pause"); //see output of terminal
 	return 0;

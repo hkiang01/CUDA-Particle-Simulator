@@ -207,7 +207,8 @@ void particle::applyForce(v3 forcevec) {
 
 
 void particle::printProps() {
-	printf("id: %d\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", id, pos.x, pos.y, pos.z, vel.x, vel.y, vel.z, acc.x, acc.y, acc.z);
+	printf("update (%d)\tpos: (%f, %f, %f)\n", id, pos.x, pos.y, pos.z);
+	//printf("id: %d\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", id, pos.x, pos.y, pos.z, vel.x, vel.y, vel.z, acc.x, acc.y, acc.z);
 }
 
 
