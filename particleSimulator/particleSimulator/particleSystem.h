@@ -10,6 +10,7 @@
 #include "particle.h"
 #include "Constants.h"
 
+
 class particleSystem
 {
 public:
@@ -28,13 +29,14 @@ public:
 	void gravitySerial(unsigned int simulationLength);
 	
 	//parallel consideration
-	/*void gravityBoth(float* positions, float* velocities, float* accelerations, unsigned int numRounds);*/
-	bool isSame(float* p, float* v, float* a);
+	void gravityBoth(float3* positions, float3* velocities, float3* accelerations, unsigned int numRounds);
+	bool isSame(float3* positions, float3* velocities, float3* accelerations);
 	
 	std::vector<particle> particles;
 	float* posFloatArrayPtr;
 	float* velFloatArrayPtr;
 	float* accFloatArrayPtr;
+
 	bool particlesPosFloatArrayCalled;
 	bool particlesVelFloatArrayCalled;
 	bool particlesAccFloatArrayCalled;

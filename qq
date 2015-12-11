@@ -1,0 +1,57 @@
+[1mdiff --git a/particleSimulator/particleSimulator/kernel.cu b/particleSimulator/particleSimulator/kernel.cu[m
+[1mindex 2fa444f..35422f6 100644[m
+[1m--- a/particleSimulator/particleSimulator/kernel.cu[m
+[1m+++ b/particleSimulator/particleSimulator/kernel.cu[m
+[36m@@ -12,6 +12,11 @@[m
+ #include "particle.h"[m
+ #include "particleSystem.h"[m
+ [m
+[32m+[m[32m//plotting[m
+[32m+[m[32m// NuGet Package Manager Command: "Install-Package nupengl.core"[m
+[32m+[m[32musing namespace std;[m
+[32m+[m[32m#include "matplotpp\matplotpp.h"[m
+[32m+[m
+ #define cudaCheck(stmt) do {													\[m
+ 	cudaError_t err = stmt;														\[m
+ 	if (err != cudaSuccess) {													\[m
+[36m@@ -184,9 +189,10 @@[m [mvoid particleSystem::gravityBoth(float* positions, float* velocities, float* acc[m
+ 	//CUDA cleanup code[m
+ }*/[m
+ [m
+[31m-int main()[m
+[31m-{[m
+ [m
+[32m+[m[32mint main(int argc, char * argv[])[m
+[32m+[m[32m{[m
+[32m+[m[41m	[m
+ 	// cudaDeviceReset must be called before exiting in order for profiling and[m
+ 	// tracing tools such as Nsight and Visual Profiler to show complete traces.[m
+ 	cudaCheck(cudaDeviceReset());[m
+[36m@@ -230,6 +236,12 @@[m [mint main()[m
+ 	printf("\n");[m
+ 	gravityParallel(positions, velocities, accelerations, SIMULATION_LENGTH);[m
+ [m
+[32m+[m	[32mglutInit(&argc, argv);[m
+[32m+[m	[32mglutCreateWindow(100, 100, 400, 300);[m
+[32m+[m	[32mglutDisplayFunc(display);[m
+[32m+[m	[32mglutReshapeFunc(reshape);[m
+[32m+[m	[32mglutMainLoop();[m
+[32m+[m
+ 	system("pause"); //see output of terminal[m
+ 	return 0;[m
+ }[m
+[1mdiff --git a/particleSimulator/particleSimulator/particleSystem.h b/particleSimulator/particleSimulator/particleSystem.h[m
+[1mindex 9d5b1a4..9e4568c 100644[m
+[1m--- a/particleSimulator/particleSimulator/particleSystem.h[m
+[1m+++ b/particleSimulator/particleSimulator/particleSystem.h[m
+[36m@@ -10,10 +10,6 @@[m
+ #include "particle.h"[m
+ #include "Constants.h"[m
+ [m
+[31m-//plotting[m
+[31m-// NuGet Package Manager Command: "Install-Package nupengl.core"[m
+[31m-using namespace std;[m
+[31m-#include "matplotpp\matplotpp.h"[m
+ [m
+ class particleSystem[m
+ {[m

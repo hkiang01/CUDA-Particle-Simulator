@@ -2,7 +2,7 @@
 
 particleSystem::particleSystem()
 {
-	srand(time(0));
+	srand((unsigned int)time(0));
 	particlesPosFloatArrayCalled = false;
 	particlesVelFloatArrayCalled = false;
 	particlesAccFloatArrayCalled = false;
@@ -10,15 +10,18 @@ particleSystem::particleSystem()
 
 particleSystem::particleSystem(unsigned int numParticles)
 {
-	srand(time(0));
+	v3 zero = { 0.0, 0.0, 0.0 };
+	srand((unsigned int)time(0));
 	unsigned int i;
 	for (i = 0; i < numParticles; i++) {
 		particle p = particle();
 		p.setID(i);
-		p.randomPosition(0.0, (float)WORLD_DIM);
-		p.randomVelocity(0.0, (float)MAX_VEL);
+		p.randomPosition(0.0, (float)(WORLD_DIM)/4);
+		//p.randomVelocity(0.0, (float)MAX_VEL);
+		p.setVelocity(zero);
+		//p.randomAcceleration(0.0, (float)MAX_ACC);
+		p.setAcceleration(zero);
 		p.setMass((float)UNIVERSAL_MASS);
-		p.randomAcceleration(0.0, (float)MAX_ACC);
 		this->particles.push_back(p);
 	}
 }
@@ -174,16 +177,16 @@ void particleSystem::printAccFloatArray(float* accFloatArray) {
 	}
 }
 
-bool particleSystem::isSame(float* p, float* v, float* a) {
+bool particleSystem::isSame(float3* p, float3* v, float3* a) {
 	bool retval = true;
 	for (unsigned int i = 0; i < NUM_PARTICLES; i++) {
 		v3 pos = particles[i].getPosition();
 		v3 vel = particles[i].getVelocity();
 		v3 acc = particles[i].getAcceleration();
 
-		bool currSame = (pos.x == p[3 * i] && pos.y == p[3 * i + 1] && pos.z == p[3 * i + 2]
-			&& vel.x == v[3 * i] && vel.y == v[3 * i + 1] && vel.z == v[3 * i + 2]
-			&& acc.x == a[3 * i] && acc.y == a[3 * i + 1] && acc.z == a[3 * i + 2]);
+		bool currSame = (pos.x == p[i].x && pos.y == p[i].y && pos.z == p[i].z
+			&& vel.x == v[i].x && vel.y == v[i].y && v[i].z
+			&& acc.x == a[i].x && acc.y == a[i].y && acc.z == a[i].z);
 
 		if (retval && !currSame) { //first difference
 			std::cout << "NOT the same, differences below..." << std::endl;
@@ -192,7 +195,7 @@ bool particleSystem::isSame(float* p, float* v, float* a) {
 			retval = false;
 			std::cout << "(serial) ";
 			particles[i].printProps();
-			printf("(parallel) - id: %d\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", i / 3, p[i], p[i + 1], p[i + 2], v[i], v[i + 1], v[i + 2], a[i], a[i + 1], a[i + 2]);
+			printf("(parallel) - id: %d\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", i / 3, p[i].x, p[i].y, p[i].z, v[i].x, v[i].y, v[i].z, a[i].x, a[i].y, a[i].z);
 		}
 	}
 	if (retval) std::cout << "SAME\n" << std::endl;

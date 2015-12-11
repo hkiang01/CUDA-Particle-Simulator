@@ -1,16 +1,10 @@
-
-#include <cuda.h>
-#include <cuda_runtime.h>
-#include <device_functions.h>
-#include <device_atomic_functions.h>
-#include <device_launch_parameters.h>
-
 #include <iostream>
 #include <stdio.h>
 #include <vector>
 #include "Constants.h"
 #include "particle.h"
 #include "particleSystem.h"
+#include <GL/glut.h> // NuGet Package Manager Command: "Install-Package nupengl.core"
 
 #define cudaCheck(stmt) do {													\
 	cudaError_t err = stmt;														\
@@ -20,7 +14,16 @@
 	}																			\
 } while (0);
 
-__constant__ float GRAVITY_CUDA = 100.066742f; //KEEP THIS THE SAME AS ITS CONSTANTS_H COUNTERPART!!!
+__constant__ float GRAVITY_CUDA = 100066.742f; //KEEP THIS THE SAME AS ITS CONSTANTS_H COUNTERPART!!!
+
+particleSystem* parSys;
+
+float3 positions[NUM_PARTICLES];
+float3 velocities[NUM_PARTICLES];
+float3 accelerations[NUM_PARTICLES];
+
+float3 serialPosBuffer[NUM_PARTICLES];
+float3 parallelPosBuffer[NUM_PARTICLES];
 
 //calculate forces and resultant acceleration for a SINGLE particle due to physics interactions with ALL particles in system
 //also updates positions and velocities
@@ -159,8 +162,8 @@ void gravityParallel(float3* hostPositions, float3* hostVelocities, float3* host
 	return;
 }
 
-/*print particles after a single round of serial and parallel to compare output and check correctness
-void particleSystem::gravityBoth(float* positions, float* velocities, float* accelerations, unsigned int numRounds) {
+//print particles after a single round of serial and parallel to compare output and check correctness
+void particleSystem::gravityBoth(float3* positions, float3* velocities, float3* accelerations, unsigned int numRounds) {
 	unsigned int round;
 	for (round = 0; round < numRounds; round++) {
 		
@@ -173,6 +176,7 @@ void particleSystem::gravityBoth(float* positions, float* velocities, float* acc
 		//PARALLEL PORTION
 		std::cout << "Parallel round " << round << std::endl;
 		gravityParallel(positions, velocities, accelerations, 1); //execution phase
+		memcpy(parallelPosBuffer, positions, NUM_PARTICLES*sizeof(float3));
 		//printParticlcesArrays(positions, velocities, accelerations); //print phase
 		std::cout << std::endl;
 
@@ -182,25 +186,75 @@ void particleSystem::gravityBoth(float* positions, float* velocities, float* acc
 	}
 
 	//CUDA cleanup code
-}*/
+}
 
-int main()
+//Source: http://xoax.net/cpp/crs/opengl/lessons/
+//lower left is (0,0) and upper right is (1,1) for XY 2D
+
+void DrawSerial() {
+	glClear(GL_COLOR_BUFFER_BIT);
+	glColor3f(1.0, 1.0, 1.0);
+	glBegin(GL_POINTS);
+	//no need to loop as DrawSerial is called repeatedly, forever
+	parSys->gravitySerial(1); //execution phase
+	//memcpy(parallelPosBuffer, positions, NUM_PARTICLES*sizeof(float3)); //copy to buffer
+	//what to draw
+	unsigned int i;
+	for (i = 0; i < NUM_PARTICLES; i++) {
+		//glVertex3f(serialPosBuffer[i].x, serialPosBuffer[i].y, serialPosBuffer[i].z);
+		v3 pos = parSys->particles[i].getPosition();
+		glVertex3f(pos.x, pos.y, pos.z);
+	}
+	glEnd();
+	glutSwapBuffers();
+}
+
+void DrawParallel() {
+	glClear(GL_COLOR_BUFFER_BIT);
+	glColor3f(1.0, 1.0, 1.0);
+	glBegin(GL_POINTS);
+	//no need to loop as DrawParallel is called repeatedly, forever
+		gravityParallel(positions, velocities, accelerations, 1); //execution phase
+		//memcpy(parallelPosBuffer, positions, NUM_PARTICLES*sizeof(float3)); //copy to buffer
+		//what to draw
+		unsigned int i;
+		for (i = 0; i < NUM_PARTICLES; i++) {
+			//glVertex3f(serialPosBuffer[i].x, serialPosBuffer[i].y, serialPosBuffer[i].z);
+			glVertex3f(positions[i].x, positions[i].y, positions[i].z);
+		}
+	glEnd();
+	glutSwapBuffers();
+}
+
+//delayed animation
+//https://youtu.be/Sl8FRfUy1ZA?t=218
+void Timer(int iUnused) {
+	glutPostRedisplay();
+	glutTimerFunc(30, Timer, 0);
+}
+
+void Initialize() {
+	glClearColor(0.0, 0.0, 0.0, 0.0); //each range from 0 to 1 (0,0,0) is black
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(-WORLD_DIM, WORLD_DIM, -WORLD_DIM, WORLD_DIM, -WORLD_DIM, WORLD_DIM); //x,y,z bounds
+}
+
+int main(int argc, char * argv[])
 {
 
 	// cudaDeviceReset must be called before exiting in order for profiling and
 	// tracing tools such as Nsight and Visual Profiler to show complete traces.
 	cudaCheck(cudaDeviceReset());
 	std::cout << "Initizing Particle System..." << std::endl;
-	particleSystem parSys(NUM_PARTICLES);
+	parSys = new particleSystem(NUM_PARTICLES);
 	//parSys.printParticles();
 	//parSys.gravitySerial(SIMULATION_LENGTH);
-	float* p = parSys.particlesPosfloatArray();
-	float* v = parSys.particlesVelfloatArray();
-	float* a = parSys.particlesAccfloatArray();
 
-	float3 positions[NUM_PARTICLES];
-	float3 velocities[NUM_PARTICLES];
-	float3 accelerations[NUM_PARTICLES];
+	//get arrays from particleSystem object
+	float* p = parSys->particlesPosfloatArray();
+	float* v = parSys->particlesVelfloatArray();
+	float* a = parSys->particlesAccfloatArray();
 
 	//convert to float3
 	float3 pos, vel, acc;
@@ -219,16 +273,38 @@ int main()
 		acc.z = a[3 * i + 2];
 		accelerations[i] = acc;
 	}
-
+	/*
 	std::cout << std::endl;
-	//parSys.printPosFloatArray(pos);
-	//parSys.printVelFloatArray(vel);
-	//parSys.printAccFloatArray(acc);
-	//parSys.gravityBoth(pos, vel, acc, SIMULATION_LENGTH);
+	parSys.printPosFloatArray(pos);
+	parSys.printVelFloatArray(vel);
+	parSys.printAccFloatArray(acc);
+	*/
 
-	parSys.gravitySerial(SIMULATION_LENGTH);
-	printf("\n");
-	gravityParallel(positions, velocities, accelerations, SIMULATION_LENGTH);
+	//Visualization
+	if (VISUAL_MODE) {
+		glutInit(&argc, argv);
+		glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+		glutInitWindowSize(1366, 768);
+		glutInitWindowPosition(200, 200);
+		glutCreateWindow("Particle Simulation Parallel");
+		Initialize();
+		if (VISUAL_PARALLEL){
+			glutDisplayFunc(DrawParallel); //calls serial or parallel kernel
+		}
+		else {
+			glutDisplayFunc(DrawSerial);
+		}
+		glutDisplayFunc(DrawParallel);
+		Timer(0);
+		glutMainLoop();
+	}
+	else {
+		//parSys.gravityBoth(positions, velocities, accelerations, SIMULATION_LENGTH);
+
+		parSys->gravitySerial(SIMULATION_LENGTH);
+		printf("\n");
+		gravityParallel(positions, velocities, accelerations, SIMULATION_LENGTH);
+	}
 
 	system("pause"); //see output of terminal
 	return 0;
