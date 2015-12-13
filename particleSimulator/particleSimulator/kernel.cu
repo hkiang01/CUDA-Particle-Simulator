@@ -197,11 +197,7 @@ void drawBitmapText(char *string, size_t size, float x, float y, float z)
 {
 	char *c;
 	glRasterPos3f(x, y, z);
-
-	for (c = string; *c != '\0'; c++)
-	{
-		glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, *c);
-	}
+	for (c = string; *c != '\0'; c++) glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, *c);
 }
 
 //Source: http://xoax.net/cpp/crs/opengl/lessons/
@@ -276,7 +272,7 @@ int main(int argc, char * argv[])
 	// cudaDeviceReset must be called before exiting in order for profiling and
 	// tracing tools such as Nsight and Visual Profiler to show complete traces.
 	cudaCheck(cudaDeviceReset());
-	std::cout << "Initizing Particle System..." << std::endl;
+	//std::cout << "Initizing Particle System..." << std::endl;
 	parSys = new particleSystem(NUM_PARTICLES);
 	//parSys.printParticles();
 	//parSys.gravitySerial(SIMULATION_LENGTH);
@@ -312,7 +308,7 @@ int main(int argc, char * argv[])
 
 	//particleSystem instance already sets corresponding serial_iteration to 0
 	parallel_iteration = 0;
-	start_time = std::clock(); //get start time
+	start_time = std::clock(); //reset start time
 
 	//Visualization
 	if (VISUAL_MODE) {
@@ -334,10 +330,20 @@ int main(int argc, char * argv[])
 	}
 	else {
 		//parSys.gravityBoth(positions, velocities, accelerations, SIMULATION_LENGTH);
-
+		
+		//serial
+		start_time = std::clock(); //reset start time
 		parSys->gravitySerial(SIMULATION_LENGTH);
-		printf("\n");
+		char str[50] = "";
+		double diff = (std::clock() - start_time) / (double)(CLOCKS_PER_SEC / 1000);
+		printf("SERIAL: Time to run simulation of %u particles for length %u:\t\t%u ms\n", NUM_PARTICLES, SIMULATION_LENGTH, (unsigned int)diff);
+		
+		//parallel
+		start_time = std::clock(); //reset start time
 		gravityParallel(positions, velocities, accelerations, SIMULATION_LENGTH);
+		diff = (std::clock() - start_time) / (double)(CLOCKS_PER_SEC / 1000);
+		printf("PARALLEL: Time to run simulation of %u particles for length %u:\t\t%u ms\n", NUM_PARTICLES, SIMULATION_LENGTH, (unsigned int)diff);
+
 	}
 
 	system("pause"); //see output of terminal

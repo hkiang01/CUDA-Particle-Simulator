@@ -10,7 +10,7 @@
 //particleSystem params
 //const float GRAVITY = 100066.742f;
 const float GRAVITY = (const float)6.67300E-3;
-#define NUM_PARTICLES 300
+#define NUM_PARTICLES 300 //reflected in terminal output mode
 #define WORLD_DIM 100
 #define MAX_VEL 5
 #define MAX_ACC 5
@@ -27,7 +27,7 @@ const float GRAVITY = (const float)6.67300E-3;
 #define SAME_CHECK false
 
 //mode toggle
-#define VISUAL_MODE true
+#define VISUAL_MODE false	//true for simulation, false for terminal output
 #define VISUAL_PARALLEL false //true for GPU, false for CPU
 
 //plotting
