@@ -28,6 +28,9 @@ float3 velocities[NUM_PARTICLES];
 float3 accelerations[NUM_PARTICLES];
 
 float3 parallelPosBuffer[NUM_PARTICLES];
+GLfloat xColor[NUM_PARTICLES];
+GLfloat yColor[NUM_PARTICLES];
+GLfloat zColor[NUM_PARTICLES];
 
 //calculate forces and resultant acceleration for a SINGLE particle due to physics interactions with ALL particles in system
 //also updates positions and velocities
@@ -197,6 +200,7 @@ void DrawSerial() {
 	unsigned int i;
 	for (i = 0; i < NUM_PARTICLES; i++) {
 		v3 pos = parSys->particles[i].getPosition();
+		glColor3f(xColor[i], yColor[i], zColor[i]);
 		glVertex3f(pos.x, pos.y, pos.z);
 	}
 	glEnd();
@@ -220,6 +224,7 @@ void DrawParallel() {
 		//what to draw
 		unsigned int i;
 		for (i = 0; i < NUM_PARTICLES; i++) {
+			glColor3f(xColor[i], yColor[i], zColor[i]);
 			glVertex3f(positions[i].x, positions[i].y, positions[i].z);
 		}
 	glEnd();
@@ -272,6 +277,9 @@ int main(int argc, char * argv[])
 		acc.y = a[3 * i + 1];
 		acc.z = a[3 * i + 2];
 		accelerations[i] = acc;
+		xColor[i] = (GLfloat)(rand() / ((float)RAND_MAX + 1));
+		yColor[i] = (GLfloat)(rand() / ((float)RAND_MAX + 1));
+		zColor[i] = (GLfloat)(rand() / ((float)RAND_MAX + 1));
 	}
 	/*
 	std::cout << std::endl;
