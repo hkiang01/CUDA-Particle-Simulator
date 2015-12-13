@@ -215,9 +215,9 @@ void DrawSerial() {
 
 	glColor3f(1.0, 1.0, 1.0);
 	glBegin(GL_POINTS);
+	glPointSize(GLfloat(2.5));
 	//no need to loop as DrawSerial is called repeatedly, forever
 	parSys->gravitySerial(1); //execution phase
-	//memcpy(parallelPosBuffer, positions, NUM_PARTICLES*sizeof(float3)); //copy to buffer
 	//what to draw
 	unsigned int i;
 	for (i = 0; i < NUM_PARTICLES; i++) {
@@ -239,10 +239,10 @@ void DrawParallel() {
 	drawBitmapText(str, strlen(str), -WORLD_DIM, WORLD_DIM - 5.0, 0.0);
 
 	glColor3f(1.0, 1.0, 1.0);
+	glPointSize(GLfloat(2.5));
 	glBegin(GL_POINTS);
 	//no need to loop as DrawParallel is called repeatedly, forever
 		gravityParallel(positions, velocities, accelerations, 1); //execution phase
-		//memcpy(parallelPosBuffer, positions, NUM_PARTICLES*sizeof(float3)); //copy to buffer
 		//what to draw
 		unsigned int i;
 		for (i = 0; i < NUM_PARTICLES; i++) {
