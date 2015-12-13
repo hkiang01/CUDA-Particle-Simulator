@@ -64,12 +64,21 @@ void particleSystem::gravitySerial(unsigned int simulationLength) {
 			for (unsigned int j = 0; j < temp.size(); j++) {
 				if (i != j) { // force on i (it) by j (itt)
 					v3 currRay = temp[i].getRay(temp[j]);
+					if (SERIAL_DEBUG) {
+						printf("ray (%u,%u); (%f,%f,%f)\n", i, j, currRay.x, currRay.y, currRay.z);
+					}
 					float dist = temp[i].getDistance(temp[j]);
+					if (SERIAL_DEBUG) {
+						printf("distance (%u,%u); %f\n", i, j, dist);
+					}
 					float mi = temp[i].getMass();
 					float mj = temp[j].getMass();
 					float xadd =(float)GRAVITY * (float)mj * (float)currRay.x / (float)pow(dist, 2.0);
 					float yadd = (float)GRAVITY * (float)mj * (float)currRay.y / (float)pow(dist, 2.0);
 					float zadd = (float)GRAVITY * (float)mj * (float)currRay.z / (float)pow(dist, 2.0);
+					if (SERIAL_DEBUG) {
+						printf("(xadd, yadd, zadd) (%u,%u); (%f,%f,%f)\n", i, j, xadd, yadd, zadd);
+					}
 					force.x -= xadd/float(mi); // F=ma --> a=F/m
 					force.y -= yadd/float(mi);
 					force.z -= zadd/float(mi);
