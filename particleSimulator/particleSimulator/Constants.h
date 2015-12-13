@@ -9,7 +9,7 @@
 
 //particleSystem params
 //const float GRAVITY = 100066.742f;
-const float GRAVITY = 6.67300E-3;
+const float GRAVITY = (const float)6.67300E-3;
 #define NUM_PARTICLES 300
 #define WORLD_DIM 100
 #define MAX_VEL 5
@@ -21,9 +21,9 @@ const float GRAVITY = 6.67300E-3;
 
 //debugging
 #define SERIAL_DEBUG false
-#define SERIAL_UPDATE_OUTPUT true
+#define SERIAL_UPDATE_OUTPUT false
 #define PARALLEL_DEBUG false
-#define PARALLEL_UPDATE_OUTPUT true
+#define PARALLEL_UPDATE_OUTPUT false
 #define SAME_CHECK false
 
 //mode toggle

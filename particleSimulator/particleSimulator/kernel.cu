@@ -1,7 +1,8 @@
 #include <iostream>
 #include <stdio.h>
 #include <vector>
-#include <time.h>
+#include <string>
+#include <ctime>
 #include "Constants.h"
 #include "particle.h"
 #include "particleSystem.h"
@@ -18,6 +19,8 @@
 __constant__ float GRAVITY_CUDA = 6.67300E-9; //KEEP THIS THE SAME AS ITS CONSTANTS_H COUNTERPART!!!
 
 particleSystem* parSys;
+std::clock_t start_time;
+unsigned int parallel_iteration;
 
 float3 positions[NUM_PARTICLES];
 float3 velocities[NUM_PARTICLES];
@@ -127,7 +130,7 @@ void gravityParallelKernel(float3* __restrict__ positions, float3* __restrict__ 
 				accelerations_shared[id].x, accelerations_shared[id].y, accelerations_shared[id].z);
 		}*/
 		
-		if (id == 0 || id == 299)
+		if (PARALLEL_UPDATE_OUTPUT && (id == 0 || id == 299))
 			printf("update (%d)\tpos: (%f, %f, %f)\n", id, positions[id].x, positions[id].y, positions[id].z);
 
 		__syncthreads();
@@ -159,7 +162,7 @@ void gravityParallel(float3* hostPositions, float3* hostVelocities, float3* host
 	cudaCheck(cudaFree(devicePositions));
 	cudaCheck(cudaFree(deviceVelocities));
 	cudaCheck(cudaFree(deviceAccelerations));
-	
+	parallel_iteration+=simulationLength; //keep track of iterations
 	return;
 }
 
@@ -171,6 +174,7 @@ void particleSystem::gravityBoth(float3* positions, float3* velocities, float3* 
 		//SERIAL PORTION
 		std::cout << "Serial round " << round << std::endl;
 		this->gravitySerial(1); //execution phase
+		systemIteration++;
 		//this->printParticles(); //print phase
 		std::cout << std::endl;
 
@@ -188,12 +192,30 @@ void particleSystem::gravityBoth(float3* positions, float3* velocities, float3* 
 
 	//CUDA cleanup code
 }
+//Source: http://www.codersource.net/2011/01/27/displaying-text-opengl-tutorial-5/
+void drawBitmapText(char *string, size_t size, float x, float y, float z)
+{
+	char *c;
+	glRasterPos3f(x, y, z);
+
+	for (c = string; *c != '\0'; c++)
+	{
+		glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, *c);
+	}
+}
 
 //Source: http://xoax.net/cpp/crs/opengl/lessons/
 //lower left is (0,0) and upper right is (1,1) for XY 2D
 
 void DrawSerial() {
 	glClear(GL_COLOR_BUFFER_BIT);
+	
+	//Frame and time
+	char str[50] = "";
+	double diff = (std::clock() - start_time) / (double)(CLOCKS_PER_SEC / 1000);
+	sprintf(str, "Frame: %u\tTime (ms): %u", parSys->systemIteration, (unsigned int)diff);
+	drawBitmapText(str, strlen(str), -WORLD_DIM, WORLD_DIM - 5.0, 0.0);
+
 	glColor3f(1.0, 1.0, 1.0);
 	glBegin(GL_POINTS);
 	//no need to loop as DrawSerial is called repeatedly, forever
@@ -212,6 +234,13 @@ void DrawSerial() {
 
 void DrawParallel() {
 	glClear(GL_COLOR_BUFFER_BIT);
+	
+	//Frame and time
+	char str[50]= "";
+	double diff = (std::clock() - start_time) / (double)(CLOCKS_PER_SEC / 1000);
+	sprintf(str, "Frame: %u\tTime (ms): %u", parallel_iteration++, (unsigned int)diff);
+	drawBitmapText(str, strlen(str), -WORLD_DIM, WORLD_DIM - 5.0, 0.0);
+
 	glColor3f(1.0, 1.0, 1.0);
 	glBegin(GL_POINTS);
 	//no need to loop as DrawParallel is called repeatedly, forever
@@ -280,6 +309,10 @@ int main(int argc, char * argv[])
 	parSys.printVelFloatArray(vel);
 	parSys.printAccFloatArray(acc);
 	*/
+
+	//particleSystem instance already sets corresponding serial_iteration to 0
+	parallel_iteration = 0;
+	start_time = std::clock(); //get start time
 
 	//Visualization
 	if (VISUAL_MODE) {

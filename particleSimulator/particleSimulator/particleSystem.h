@@ -40,6 +40,8 @@ public:
 	bool particlesPosFloatArrayCalled;
 	bool particlesVelFloatArrayCalled;
 	bool particlesAccFloatArrayCalled;
+
+	unsigned int systemIteration;
 };
 
 #endif

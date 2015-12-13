@@ -6,6 +6,7 @@ particleSystem::particleSystem()
 	particlesPosFloatArrayCalled = false;
 	particlesVelFloatArrayCalled = false;
 	particlesAccFloatArrayCalled = false;
+	systemIteration = 0;
 }
 
 particleSystem::particleSystem(unsigned int numParticles)
@@ -88,7 +89,7 @@ void particleSystem::gravitySerial(unsigned int simulationLength) {
 			}
 			//it->updateParticle(EPOCH, force);
 			particles[i].updateParticle(EPOCH, force); //KEY: update occurs at the class member particles vector
-			if (i == 0 || i == 299) {
+			if (SERIAL_UPDATE_OUTPUT && (i == 0 || i == 299)) {
 				//std::cout << "update (" << it->id << "): ";
 				//std::cout << "update (" << particles[i].id << "): ";
 				//it->printProps();
@@ -98,6 +99,7 @@ void particleSystem::gravitySerial(unsigned int simulationLength) {
 		}
 		counter++;
 	}
+	systemIteration += simulationLength;
 }
 
 
