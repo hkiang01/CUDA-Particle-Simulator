@@ -17,6 +17,7 @@
 } while (0);
 
 __constant__ float GRAVITY_CUDA = 6.67300E-9; //KEEP THIS THE SAME AS ITS CONSTANTS_H COUNTERPART!!!
+__constant__ float EPOCH_CUDA = 1000.0f; //KEEP THIS THE SAME AS ITS CONSTANTS_H COUNTERPART!!!
 
 particleSystem* parSys;
 std::clock_t start_time;
@@ -109,13 +110,13 @@ void gravityParallelKernel(float3* __restrict__ positions, float3* __restrict__ 
 		}
 
 		//update phase
-		positions[id].x += temp_vel.x * EPOCH; //EPOCH is dt
-		positions[id].y += temp_vel.y * EPOCH;
-		positions[id].z += temp_vel.z * EPOCH;
+		positions[id].x += temp_vel.x * EPOCH_CUDA; //EPOCH_CUDA is dt
+		positions[id].y += temp_vel.y * EPOCH_CUDA;
+		positions[id].z += temp_vel.z * EPOCH_CUDA;
 
-		velocities[id].x += temp_acc.x * EPOCH; //EPOCH is dt
-		velocities[id].y += temp_acc.y * EPOCH;
-		velocities[id].z += temp_acc.z * EPOCH;
+		velocities[id].x += temp_acc.x * EPOCH_CUDA; //EPOCH_CUDA is dt
+		velocities[id].y += temp_acc.y * EPOCH_CUDA;
+		velocities[id].z += temp_acc.z * EPOCH_CUDA;
 
 		//this is why that shit's important
 		accelerations[id].x = -force.x; //EPOCH is dt
@@ -334,7 +335,6 @@ int main(int argc, char * argv[])
 		//serial
 		start_time = std::clock(); //reset start time
 		parSys->gravitySerial(SIMULATION_LENGTH);
-		char str[50] = "";
 		double diff = (std::clock() - start_time) / (double)(CLOCKS_PER_SEC / 1000);
 		printf("SERIAL: Time to run simulation of %u particles for length %u:\t\t%u ms\n", NUM_PARTICLES, SIMULATION_LENGTH, (unsigned int)diff);
 		
