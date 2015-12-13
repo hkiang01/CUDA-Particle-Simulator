@@ -16,8 +16,8 @@
 	}																			\
 } while (0);
 
-__constant__ float GRAVITY_CUDA = 6.67300E-9; //KEEP THIS THE SAME AS ITS CONSTANTS_H COUNTERPART!!!
-__constant__ float EPOCH_CUDA = 1000.0f; //KEEP THIS THE SAME AS ITS CONSTANTS_H COUNTERPART!!!
+__constant__ float GRAVITY_CUDA = 6.67300E-9; //KEEP THIS THE SAME AS ITS CONSTANTS_H COUNTERPART!!! (Constants.h)
+__constant__ float EPOCH_CUDA = 1000.0f; //KEEP THIS THE SAME AS ITS CONSTANTS_H COUNTERPART!!! (Constants.h)
 
 particleSystem* parSys;
 std::clock_t start_time;
@@ -27,7 +27,6 @@ float3 positions[NUM_PARTICLES];
 float3 velocities[NUM_PARTICLES];
 float3 accelerations[NUM_PARTICLES];
 
-float3 serialPosBuffer[NUM_PARTICLES];
 float3 parallelPosBuffer[NUM_PARTICLES];
 
 //calculate forces and resultant acceleration for a SINGLE particle due to physics interactions with ALL particles in system
@@ -37,14 +36,6 @@ void gravityParallelKernel(float3* __restrict__ positions, float3* __restrict__ 
 
 	//strategy: one thread (id) per particle
 
-	/*__shared__ float3 particles_shared[BLOCK_SIZE];
-	__shared__ float3 velocities_shared[BLOCK_SIZE];
-	__shared__ float3 accelerations_shared[BLOCK_SIZE];
-
-	__shared__ float3 particles_temp[BLOCK_SIZE];
-	__shared__ float3 velocities_temp[BLOCK_SIZE];
-	__shared__ float3 accelerations_temp[BLOCK_SIZE];*/
-
 	unsigned int id = threadIdx.x + blockIdx.x * blockDim.x;
 	if (id >= NUM_PARTICLES) return;
 
@@ -52,26 +43,12 @@ void gravityParallelKernel(float3* __restrict__ positions, float3* __restrict__ 
 	float3 temp_vel;
 	float3 temp_acc;
 	float3 force;
-
-	/*LOAD PHASE via float3 conversion
-	float3 pos, vel, acc;
-	pos.x = positions[3 * id];
-	pos.y = positions[3 * id + 1];
-	pos.z = positions[3 * id + 2];
-	particles_shared[threadIdx.x] = pos;
-	vel.x = velocities[3 * id];
-	vel.y = velocities[3 * id + 1];
-	vel.z = velocities[3 * id + 2];
-	velocities_shared[threadIdx.x] = vel;
-	acc.x = accelerations[3 * id];
-	acc.y = accelerations[3 * id + 1];
-	acc.z = accelerations[3 * id + 2];
-	accelerations_shared[threadIdx.x] = acc;
 	
 	if (PARALLEL_DEBUG) {
-		printf("import - id: %d\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", id, pos.x, pos.y, pos.z, vel.x, vel.y, vel.z, acc.x, acc.y, acc.z);
+		printf("import - id: %d\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", id, positions[id].x, positions[id].y, positions[id].z,
+			velocities[id].x, velocities[id].y, velocities[id].z,
+			accelerations[id].x, accelerations[id].y, accelerations[id].z);
 	}
-	__syncthreads();*/
 
 	//CALCULATION PHASE
 	for (unsigned int simCount = 0; simCount < simulationLength; simCount++) 
@@ -87,20 +64,20 @@ void gravityParallelKernel(float3* __restrict__ positions, float3* __restrict__ 
 			{
 				float3 other = positions[i];
 				float3 ray = { temp_pos.x - other.x, temp_pos.y - other.y, temp_pos.z - other.z };
-				/*if (PARALLEL_DEBUG) {
+				if (PARALLEL_DEBUG) {
 					printf("ray (%u,%u); (%f,%f,%f)\n", id, i, ray.x, ray.y, ray.z);
-					}*/
+				}
 				float dist = (temp_pos.x - other.x)*(temp_pos.x - other.x) + (temp_pos.y - other.y)*(temp_pos.y - other.y) + (temp_pos.z - other.z)*(temp_pos.z - other.z);
 				dist = sqrt(dist);
-				/*if (PARALLEL_DEBUG) {
+				if (PARALLEL_DEBUG) {
 					printf("distance (%u,%u); %f\n", id, i, dist);
-					}*/
+				}
 				float xadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.x / (dist * dist);
 				float yadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.y / (dist * dist);
 				float zadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.z / (dist * dist);
-				/*if (PARALLEL_DEBUG) {
+				if (PARALLEL_DEBUG) {
 					printf("(xadd, yadd, zadd) (%u,%u); (%f,%f,%f)\n", id, i, xadd, yadd, zadd);
-					}*/
+				}
 
 				force.x += xadd / UNIVERSAL_MASS;
 				force.y += yadd / UNIVERSAL_MASS;
@@ -123,13 +100,11 @@ void gravityParallelKernel(float3* __restrict__ positions, float3* __restrict__ 
 		accelerations[id].y = -force.y;
 		accelerations[id].z = -force.z;
 
-			
-			/*
 		if (PARALLEL_UPDATE_OUTPUT) {
-			printf("update (%d)\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", id, particles_shared[id].x, particles_shared[id].y, particles_shared[id].z,
-				velocities_shared[id].x, velocities_shared[id].y, velocities_shared[id].z,
-				accelerations_shared[id].x, accelerations_shared[id].y, accelerations_shared[id].z);
-		}*/
+			printf("update (%d)\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", id, positions[id].x, positions[id].y, positions[id].z,
+				velocities[id].x, velocities[id].y, velocities[id].z,
+				accelerations[id].x, accelerations[id].y, accelerations[id].z);
+		}
 		
 		if (PARALLEL_UPDATE_OUTPUT && (id == 0 || id == 299))
 			printf("update (%d)\tpos: (%f, %f, %f)\n", id, positions[id].x, positions[id].y, positions[id].z);
@@ -193,7 +168,7 @@ void particleSystem::gravityBoth(float3* positions, float3* velocities, float3* 
 
 	//CUDA cleanup code
 }
-//Source: http://www.codersource.net/2011/01/27/displaying-text-opengl-tutorial-5/
+//Source (how to print text in OpenGL): http://www.codersource.net/2011/01/27/displaying-text-opengl-tutorial-5/
 void drawBitmapText(char *string, size_t size, float x, float y, float z)
 {
 	char *c;
@@ -201,7 +176,7 @@ void drawBitmapText(char *string, size_t size, float x, float y, float z)
 	for (c = string; *c != '\0'; c++) glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, *c);
 }
 
-//Source: http://xoax.net/cpp/crs/opengl/lessons/
+//Source (how to render basic OpenGL primitives): http://xoax.net/cpp/crs/opengl/lessons/
 //lower left is (0,0) and upper right is (1,1) for XY 2D
 
 void DrawSerial() {
@@ -221,7 +196,6 @@ void DrawSerial() {
 	//what to draw
 	unsigned int i;
 	for (i = 0; i < NUM_PARTICLES; i++) {
-		//glVertex3f(serialPosBuffer[i].x, serialPosBuffer[i].y, serialPosBuffer[i].z);
 		v3 pos = parSys->particles[i].getPosition();
 		glVertex3f(pos.x, pos.y, pos.z);
 	}
@@ -246,7 +220,6 @@ void DrawParallel() {
 		//what to draw
 		unsigned int i;
 		for (i = 0; i < NUM_PARTICLES; i++) {
-			//glVertex3f(serialPosBuffer[i].x, serialPosBuffer[i].y, serialPosBuffer[i].z);
 			glVertex3f(positions[i].x, positions[i].y, positions[i].z);
 		}
 	glEnd();
@@ -316,7 +289,7 @@ int main(int argc, char * argv[])
 		glutInit(&argc, argv);
 		glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
 		glutInitWindowSize(1366, 768);
-		glutInitWindowPosition(200, 200);
+		glutInitWindowPosition(50, 40);
 		glutCreateWindow("Particle Simulation Parallel");
 		Initialize();
 		if (VISUAL_PARALLEL){

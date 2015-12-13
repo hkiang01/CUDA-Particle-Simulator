@@ -28,7 +28,7 @@ public:
 	void printAccFloatArray(float* accFloatArray);
 	void gravitySerial(unsigned int simulationLength);
 	
-	//parallel consideration
+	//parallel consideration (comment out if CUDA doesn't work)
 	void gravityBoth(float3* positions, float3* velocities, float3* accelerations, unsigned int numRounds);
 	bool isSame(float3* positions, float3* velocities, float3* accelerations);
 	
