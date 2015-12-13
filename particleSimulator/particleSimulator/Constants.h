@@ -8,13 +8,14 @@
 #include <device_launch_parameters.h>
 
 //particleSystem params
-const float GRAVITY = 100066.742f;
+//const float GRAVITY = 100066.742f;
+const float GRAVITY = 6.67300E-3;
 #define NUM_PARTICLES 300
 #define WORLD_DIM 100
 #define MAX_VEL 5
 #define MAX_ACC 5
 #define UNIVERSAL_MASS 55.00f
-#define EPOCH .001f
+#define EPOCH 1000.0f
 #define SIMULATION_LENGTH 10
 #define BLOCK_SIZE 256
 
@@ -27,7 +28,7 @@ const float GRAVITY = 100066.742f;
 
 //mode toggle
 #define VISUAL_MODE true
-#define VISUAL_PARALLEL true
+#define VISUAL_PARALLEL false //true for GPU, false for CPU
 
 //plotting
 

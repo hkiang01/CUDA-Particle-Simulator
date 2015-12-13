@@ -1,6 +1,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <vector>
+#include <time.h>
 #include "Constants.h"
 #include "particle.h"
 #include "particleSystem.h"
@@ -14,7 +15,7 @@
 	}																			\
 } while (0);
 
-__constant__ float GRAVITY_CUDA = 100066.742f; //KEEP THIS THE SAME AS ITS CONSTANTS_H COUNTERPART!!!
+__constant__ float GRAVITY_CUDA = 6.67300E-9; //KEEP THIS THE SAME AS ITS CONSTANTS_H COUNTERPART!!!
 
 particleSystem* parSys;
 
@@ -90,9 +91,9 @@ void gravityParallelKernel(float3* __restrict__ positions, float3* __restrict__ 
 				/*if (PARALLEL_DEBUG) {
 					printf("distance (%u,%u); %f\n", id, i, dist);
 					}*/
-				float xadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.x / (dist * dist * dist);
-				float yadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.y / (dist * dist * dist);
-				float zadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.z / (dist * dist * dist);
+				float xadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.x / (dist * dist);
+				float yadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.y / (dist * dist);
+				float zadd = GRAVITY_CUDA * UNIVERSAL_MASS * (float)ray.z / (dist * dist);
 				/*if (PARALLEL_DEBUG) {
 					printf("(xadd, yadd, zadd) (%u,%u); (%f,%f,%f)\n", id, i, xadd, yadd, zadd);
 					}*/
@@ -114,9 +115,9 @@ void gravityParallelKernel(float3* __restrict__ positions, float3* __restrict__ 
 		velocities[id].z += temp_acc.z * EPOCH;
 
 		//this is why that shit's important
-		accelerations[id].x = force.x; //EPOCH is dt
-		accelerations[id].y = force.y;
-		accelerations[id].z = force.z;
+		accelerations[id].x = -force.x; //EPOCH is dt
+		accelerations[id].y = -force.y;
+		accelerations[id].z = -force.z;
 
 			
 			/*

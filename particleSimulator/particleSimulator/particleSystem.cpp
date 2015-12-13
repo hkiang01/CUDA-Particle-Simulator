@@ -76,14 +76,14 @@ void particleSystem::gravitySerial(unsigned int simulationLength) {
 					float mi = temp[i].getMass();
 					//float mj = itt->getMass();
 					float mj = temp[j].getMass();
-					float xadd =(float)GRAVITY * (float)mj * (float)currRay.x / (float)pow(dist, 3.0);
-					float yadd = (float)GRAVITY * (float)mj * (float)currRay.y / (float)pow(dist, 3.0);
-					float zadd = (float)GRAVITY * (float)mj * (float)currRay.z / (float)pow(dist, 3.0);
+					float xadd =(float)GRAVITY * (float)mj * (float)currRay.x / (float)pow(dist, 2.0);
+					float yadd = (float)GRAVITY * (float)mj * (float)currRay.y / (float)pow(dist, 2.0);
+					float zadd = (float)GRAVITY * (float)mj * (float)currRay.z / (float)pow(dist, 2.0);
 					//if (SERIAL_DEBUG){ std::cout << "(xadd,yadd,zadd) (" << it->id << "," << itt->id << "): " << xadd << "," << yadd << "," << zadd << ")" << std::endl; }
 					//if (SERIAL_DEBUG){ std::cout << "(xadd,yadd,zadd) (" << temp[i].id << "," << temp[j].id << "): " << xadd << "," << yadd << "," << zadd << ")" << std::endl; }
-					force.x += xadd/float(mi); // F=ma --> a=F/m
-					force.y += yadd/float(mi);
-					force.z += zadd/float(mi);
+					force.x -= xadd/float(mi); // F=ma --> a=F/m
+					force.y -= yadd/float(mi);
+					force.z -= zadd/float(mi);
 				}
 			}
 			//it->updateParticle(EPOCH, force);
