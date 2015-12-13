@@ -193,7 +193,7 @@ bool particleSystem::isSame(float3* p, float3* v, float3* a) {
 
 particleSystem::~particleSystem()
 {
-	//if (particlesPosfloatArrayCalled) free(posfloatArrayPtr);
-	//if (particlesVelfloatArrayCalled) free(velfloatArrayPtr);
-	//if (particlesAccfloatArrayCalled) free(accfloatArrayPtr);
+	delete[] posFloatArrayPtr;
+	delete[] velFloatArrayPtr;
+	delete[] accFloatArrayPtr;
 }

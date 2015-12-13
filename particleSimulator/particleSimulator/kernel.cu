@@ -319,6 +319,10 @@ int main(int argc, char * argv[])
 
 	}
 
+	delete[] p;
+	delete[] v;
+	delete[] a;
 	system("pause"); //see output of terminal
+
 	return 0;
 }
