@@ -14,7 +14,7 @@
 #define SCREEN_HEIGHT 1080
 
 //mode toggle
-#define VISUAL_MODE false	//true for simulation, false for terminal output
+#define VISUAL_MODE true	//true for simulation, false for terminal output
 #define VISUAL_PARALLEL true //true for GPU, false for CPU
 
 //particleSystem params
