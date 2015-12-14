@@ -19,14 +19,18 @@
 //mode toggle
 #define VISUAL_MODE false	//true for simulation, false for terminal output
 #define VISUAL_PARALLEL true //true for GPU, false for CPU
-#define TILE_MODE true
+#define TILE_MODE false //may not give 'correct' results compared to serial (still 'works' for simulation if NUM_PARTICLES is multiple of BLOCK_SIZE)
+#define TILE_REDUCTION_MODE false //THIS iS BUGGY, DO NOT ENABLE!!! - only works with TILE_MODE enabled
 
 //particleSystem params
 const float GRAVITY = (const float)6.67300E-9; //ENSURE CUDA COUNTERPART IS THE SAME (kernel.cu)
 #define EPOCH 1000.0f //	this is dt	ENSURE CUDA COUNTERPART IS THE SAME (kernel.cu)
 
-#define BLOCK_SIZE 128
-#define NUM_PARTICLES 300 //reflected in terminal output mode
+#define BLOCK_SIZE 256
+#define TILE_SIZE (BLOCK_SIZE)
+#define NUM_PARTICLES 512 // (must be multiple of BLOCK_SIZE if using TILE_MODE) reflected in terminal output mode
+#define NUM_BLOCKS ((NUM_PARTICLES - 1) / BLOCK_SIZE + 1)
+#define NUM_TILES (NUM_BLOCKS)
 #define SIMULATION_LENGTH 5 //reflected in terminal output mode
 #define WORLD_DIM 100
 #define MAX_VEL 5
@@ -36,8 +40,8 @@ const float GRAVITY = (const float)6.67300E-9; //ENSURE CUDA COUNTERPART IS THE 
 //debugging
 #define SERIAL_DEBUG false
 #define PARALLEL_DEBUG false
-#define SERIAL_UPDATE_OUTPUT true //terminal output for each iteration for each particle
-#define PARALLEL_UPDATE_OUTPUT true //terminal output for each iteration for each particle
+#define SERIAL_UPDATE_OUTPUT false //terminal output for each iteration for each particle
+#define PARALLEL_UPDATE_OUTPUT false //terminal output for each iteration for each particle
 #define SAME_CHECK false //pure debug
 
 #endif

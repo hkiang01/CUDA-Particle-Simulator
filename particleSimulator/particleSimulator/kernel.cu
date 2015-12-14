@@ -60,6 +60,45 @@ float3 other, int otherID)
 	return acc;
 }
 
+//from reduction MP in ECE 408 / CS 483
+__device__
+void reductionFloat3(float3 * input, float3 output, int len) {
+	//@@ Load a segment of the input vector into shared memory
+	//@@ Traverse the reduction tree
+	//@@ Write the computed sum of the block to the output vector at the 
+	//@@ correct index
+
+	__shared__ float partialSumX[2 * BLOCK_SIZE];
+	__shared__ float partialSumY[2 * BLOCK_SIZE];
+	__shared__ float partialSumZ[2 * BLOCK_SIZE];
+
+	unsigned int tx = threadIdx.x;
+	unsigned int start = 2 * blockIdx.x*blockDim.x;
+	int i = threadIdx.x + blockDim.x * blockIdx.x;
+
+	partialSumX[tx] = input[start + tx].x;
+	partialSumX[blockDim.x + tx] = input[start + blockDim.x + tx].x;
+	partialSumY[tx] = input[start + tx].x;
+	partialSumY[blockDim.x + tx] = input[start + blockDim.x + tx].y;
+	partialSumZ[tx] = input[start + tx].x;
+	partialSumZ[blockDim.x + tx] = input[start + blockDim.x + tx].z;
+	unsigned int stride;
+	for (stride = 1; stride <= blockDim.x; stride *= 2) {
+		__syncthreads();
+		if (tx % stride == 0 && (2 * i + stride) < (len)) {
+			partialSumX[2 * tx] += partialSumX[2 * tx + stride];
+			partialSumY[2 * tx] += partialSumY[2 * tx + stride];
+			partialSumZ[2 * tx] += partialSumZ[2 * tx + stride];
+		}
+	}
+	__syncthreads();
+	if (tx == 0) {
+		output.x += partialSumX[0];
+		output.y += partialSumY[0];
+		output.z += partialSumZ[0];
+	}
+}
+
 //calculate forces and resultant acceleration for a SINGLE particle due to physics interactions with ALL particles in system
 //also updates positions and velocities
 __global__
@@ -74,8 +113,9 @@ void gravityParallelKernel(float3* __restrict__ positions, float3* __restrict__ 
 	float3 temp_vel;
 	float3 temp_acc;
 	float3 force;
-	__shared__ float3 positions_shared[BLOCK_SIZE];
-	float3* sharedPos = positions_shared;
+	__shared__ float3 positions_shared[BLOCK_SIZE]; //for TILE_MODE
+	__shared__ float3 acc_update[BLOCK_SIZE]; //for TILE_REDUCTION_MODE
+	__shared__ float3 totals[NUM_TILES];//for TILE_REDUCTION_MODE
 	
 	if (PARALLEL_DEBUG) {
 		printf("import - id: %d\tpos: (%f, %f, %f)\tvel: (%f, %f, %f)\tacc:(%f, %f, %f)\n", id, positions[id].x, positions[id].y, positions[id].z,
@@ -95,23 +135,44 @@ void gravityParallelKernel(float3* __restrict__ positions, float3* __restrict__ 
 		if (TILE_MODE) {
 			for (int tile = 0; tile < numTiles; tile++)
 			{
-				sharedPos[threadIdx.x] = positions[tile * blockDim.x + threadIdx.x];
-
+				positions_shared[threadIdx.x] = positions[tile * blockDim.x + threadIdx.x];
 				__syncthreads();
-
-				// This is the "tile_calculation" from the GPUG3 article.
-//#pragma unroll 128
-
-				for (unsigned int counter = 0; counter < blockDim.x; counter++)
-				{
-					if ( (counter + tile*numTiles) >= NUM_PARTICLES) break;
-					force = bodyBodyInteraction(force, temp_pos, id, sharedPos[counter], counter + tile*numTiles);
+				if (TILE_REDUCTION_MODE) { //stores calculation of each pragma thread into shared memory that is summed by reduction kernel
+					//THERE ARE BUGS HERE!!!!
+					//THERE ARE BUGS HERE!!!!
+					//THERE ARE BUGS HERE!!!!
+					// This is the "tile_calculation"
+					#pragma unroll 128
+					for (unsigned int counter = 0; counter < blockDim.x; counter++)
+					{
+						if ((counter + tile*numTiles) >= NUM_PARTICLES) break;
+						acc_update[counter] = bodyBodyInteraction(acc_update[counter], temp_pos, id, positions_shared[counter], counter + tile*blockDim.x);
+					}
+					__syncthreads();
+					reductionFloat3(acc_update, totals[tile], fminf(TILE_SIZE, NUM_PARTICLES - (tile * NUM_TILES)));
+					__syncthreads();
+					//THERE ARE BUGS HERE!!!!
+					//THERE ARE BUGS HERE!!!!
+					//THERE ARE BUGS HERE!!!!
 				}
-
+				else {
+					// This is the "tile_calculation"
+					#pragma unroll 128
+					for (unsigned int counter = 0; counter < blockDim.x; counter++)
+					{
+						if ((counter + tile*numTiles) >= NUM_PARTICLES) break;
+						force = bodyBodyInteraction(force, temp_pos, id, positions_shared[counter], counter + tile*blockDim.x);
+					}
+				}
+				__syncthreads();
+			}
+			if (TILE_REDUCTION_MODE) { //stores calculation of each pragma thread into shared memory that is summed by reduction kernel
+				reductionFloat3(totals, force, NUM_BLOCKS);
 				__syncthreads();
 			}
 		}
 		else {
+			//#pragma unroll 128
 			for (unsigned i = 0; i < NUM_PARTICLES; i++) //all (other) particles
 			{
 				if (id != i) //don't affect own particle
@@ -359,8 +420,8 @@ int main(int argc, char * argv[])
 		glutMainLoop();
 	}
 	else {
-		parSys->gravityBoth(positions, velocities, accelerations, SIMULATION_LENGTH);
-		/*
+		//parSys->gravityBoth(positions, velocities, accelerations, SIMULATION_LENGTH);
+		
 		//serial
 		start_time = std::clock(); //reset start time
 		parSys->gravitySerial(SIMULATION_LENGTH);
@@ -372,7 +433,6 @@ int main(int argc, char * argv[])
 		gravityParallel(positions, velocities, accelerations, SIMULATION_LENGTH);
 		diff = (std::clock() - start_time) / (double)(CLOCKS_PER_SEC / 1000);
 		printf("PARALLEL: Time to run simulation of %u particles for length %u:\t\t%u ms\n", NUM_PARTICLES, SIMULATION_LENGTH, (unsigned int)diff);
-		*/
 	}
 
 	delete[] p;
