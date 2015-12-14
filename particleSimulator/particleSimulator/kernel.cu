@@ -301,50 +301,54 @@ void drawBitmapText(char *string, size_t size, float x, float y, float z)
 
 void DrawSerial() {
 	glClear(GL_COLOR_BUFFER_BIT);
-	
+	glColor3f(1.0, 1.0, 1.0);
+
 	//Frame and time
 	char str[50] = "";
 	double diff = (std::clock() - start_time) / (double)(CLOCKS_PER_SEC / 1000);
-	sprintf(str, "Frame: %u\tTime (ms): %u", parSys->systemIteration, (unsigned int)diff);
+	//double fps = diff * 1000/ (double)parSys->systemIteration;
+	//sprintf(str, "Frame: %u\tTime (ms): %u\tFPS: %lf", parSys->systemIteration, /*(unsigned int)*/diff, fps);
+	sprintf(str, "Frame: %u\tTime (ms): %u", parSys->systemIteration, /*(unsigned int)*/diff);
 	drawBitmapText(str, strlen(str), -WORLD_DIM, WORLD_DIM - 5.0, 0.0);
 
-	glColor3f(1.0, 1.0, 1.0);
-	glBegin(GL_POINTS);
-	glPointSize(GLfloat(2.5));
 	//no need to loop as DrawSerial is called repeatedly, forever
 	parSys->gravitySerial(1); //execution phase
 	//what to draw
 	unsigned int i;
 	for (i = 0; i < NUM_PARTICLES; i++) {
+		glPointSize((positions[i].z + WORLD_DIM)*GLfloat(3.0 / WORLD_DIM));
+		glBegin(GL_POINTS);
 		v3 pos = parSys->particles[i].getPosition();
 		glColor3f(xColor[i], yColor[i], zColor[i]);
 		glVertex3f(pos.x, pos.y, pos.z);
+		glEnd();
 	}
-	glEnd();
 	glutSwapBuffers();
 }
 
 void DrawParallel() {
 	glClear(GL_COLOR_BUFFER_BIT);
-	
+	glColor3f(1.0, 1.0, 1.0);
+
 	//Frame and time
 	char str[50]= "";
 	double diff = (std::clock() - start_time) / (double)(CLOCKS_PER_SEC / 1000);
+	//double fps = diff * 1000 / (double)parallel_iteration;
+	//sprintf(str, "Frame: %u\tTime (ms): %u\tFPS: %lf", parallel_iteration++, (unsigned int)diff, fps);
 	sprintf(str, "Frame: %u\tTime (ms): %u", parallel_iteration++, (unsigned int)diff);
 	drawBitmapText(str, strlen(str), -WORLD_DIM, WORLD_DIM - 5.0, 0.0);
 
-	glColor3f(1.0, 1.0, 1.0);
-	glPointSize(GLfloat(2.5));
-	glBegin(GL_POINTS);
 	//no need to loop as DrawParallel is called repeatedly, forever
 		gravityParallel(positions, velocities, accelerations, 1); //execution phase
 		//what to draw
 		unsigned int i;
 		for (i = 0; i < NUM_PARTICLES; i++) {
+			glPointSize((positions[i].z + WORLD_DIM)*GLfloat(3.0/WORLD_DIM));
+			glBegin(GL_POINTS);
 			glColor3f(xColor[i], yColor[i], zColor[i]);
 			glVertex3f(positions[i].x, positions[i].y, positions[i].z);
+			glEnd();
 		}
-	glEnd();
 	glutSwapBuffers();
 }
 
